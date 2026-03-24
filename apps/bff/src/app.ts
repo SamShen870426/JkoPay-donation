@@ -5,8 +5,16 @@ import type { AppDependencies } from './di/dependencies.js';
 import { registerGlobalErrorHandler } from './plugins/error-handler.js';
 import { registerDonationRoutes } from './routes/donation.routes.js';
 
-export async function createApp(deps: AppDependencies): Promise<FastifyInstance> {
-  const app = Fastify({ logger: true });
+export type CreateAppOptions = {
+  /** 測試時關閉避免污染 stdout */
+  logger?: boolean;
+};
+
+export async function createApp(
+  deps: AppDependencies,
+  options: CreateAppOptions = {},
+): Promise<FastifyInstance> {
+  const app = Fastify({ logger: options.logger ?? true });
   registerGlobalErrorHandler(app);
 
   await app.register(cors, { origin: true });

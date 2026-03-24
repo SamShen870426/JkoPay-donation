@@ -83,10 +83,40 @@ VITE_API_BASE=http://127.0.0.1:4000
 | `npm run prisma:migrate` | `prisma migrate deploy`（BFF） |
 | `npm run prisma:seed` | 執行 `apps/bff/prisma/seed.ts` |
 | `npm run prisma:setup` | generate + migrate + seed |
-| `npm test` | 執行 BFF 的 Vitest（`vitest run`） |
+| `npm test` | 依序執行 BFF、Web 的 **單元**測試（`vitest run`，不含 `*.integration.*`） |
+| `npm run test:integration` | **整合**測試：BFF（真 DB，見下文）+ Web（MSW，不需啟 BFF） |
 | `npm run check-env` | Windows：執行 `scripts/check-env.ps1` |
 
-BFF 專用（`apps/bff`）：`db:migrate`（`migrate dev`）、`db:push` 等見該目錄 `package.json`。
+BFF 專用（`apps/bff`）：`db:migrate`（`migrate dev`）、`db:push`、`test:integration` 等見該目錄 `package.json`。
+
+---
+
+## 整合測試
+
+### Web（MSW）
+
+- **不需** Docker 或本機 BFF；`npm run test:integration -w @jkopay/web` 會用獨立 `vitest.integration.config.ts` 啟 MSW、渲染 `App`／`DonationListScreen`。
+- 詳見 [ARCHITECTURE.md](./ARCHITECTURE.md)「測試策略」Web 一節。
+
+### BFF（MySQL + Prisma）
+
+前置：**MySQL 可連線**（例如 `npm run db:up`）、已執行 **`npm run prisma:setup`**（或至少 `migrate deploy` + `seed`），`apps/bff/.env` 內 `DATABASE_URL` 正確。
+
+```bash
+npm run test:integration -w @jkopay/bff
+```
+
+此指令會設 **`RUN_INTEGRATION=1`** 並跑 `vitest.integration.config.ts`，測試會 **真的查詢資料庫**；與 seed 內容一致（例如關鍵字 `兒童福利`、groups 分類筆數、主題 `animal_protection`）。
+
+若未設 `RUN_INTEGRATION=1` 而直接執行 `vitest --config vitest.integration.config.ts`，檔內 `describe.skipIf` 會 **略過** 所有 DB 案例（適合只驗證設定檔可載入）。
+
+### 根目錄一次跑兩邊
+
+```bash
+npm run test:integration
+```
+
+順序：BFF → Web。若本機未開資料庫，BFF 整合會失敗；可只跑 Web：`npm run test:integration -w @jkopay/web`。
 
 ---
 
@@ -94,7 +124,8 @@ BFF 專用（`apps/bff`）：`db:migrate`（`migrate dev`）、`db:push` 等見�
 
 - **契約改過但型別／執行怪**：先 `npm run build -w @jkopay/contracts` 或根目錄 `npm run build`。  
 - **列表主題篩選無效**：確認已跑 migration 與 seed，且 Web 請求 URL 是否帶上 `theme=`；BFF 有重啟。  
-- **MySQL 連不上**：確認容器健康、`DATABASE_URL` 主機埠與 docker 對外映射一致。
+- **MySQL 連不上**：確認容器健康、`DATABASE_URL` 主機埠與 docker 對外映射一致。  
+- **整合測試部分 400、其餘 200**：多半是 query 不符合契約（例如 `limit` 上限為 **50**，超過會驗證失敗，與 DB 是否 setup 無關）。可看回應 body 是否為 `VALIDATION_ERROR`。
 
 ---
 

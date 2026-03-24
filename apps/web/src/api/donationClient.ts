@@ -8,15 +8,21 @@ import {
 } from '@jkopay/contracts';
 import { throwDonationErrorFromBody } from './donation-api-error.js';
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? '';
-
-function buildUrl(params: {
+export type DonationItemsListUrlParams = {
   category: DonationCategory;
   q: string;
   cursor?: string;
   limit?: number;
   theme?: CharityTheme;
-}): string {
+};
+
+/**
+ * 組列表 API URL（單元測試可傳入 `apiBase` 隔離 `import.meta.env`）。
+ */
+export function buildDonationItemsListUrl(
+  params: DonationItemsListUrlParams,
+  apiBase: string = import.meta.env.VITE_API_BASE ?? '',
+): string {
   const q = donationListQuerySchema.parse({
     category: params.category,
     q: params.q,
@@ -30,7 +36,7 @@ function buildUrl(params: {
   if (q.cursor) sp.set('cursor', q.cursor);
   sp.set('limit', String(q.limit));
   if (q.theme) sp.set('theme', q.theme);
-  return `${API_BASE}/api/v1/donation-items?${sp.toString()}`;
+  return `${apiBase}/api/v1/donation-items?${sp.toString()}`;
 }
 
 export async function fetchDonationPage(input: {
@@ -40,7 +46,7 @@ export async function fetchDonationPage(input: {
   theme?: CharityTheme;
   signal?: AbortSignal;
 }): Promise<DonationListResponse> {
-  const url = buildUrl(input);
+  const url = buildDonationItemsListUrl(input);
   const res = await fetch(url, { signal: input.signal });
   const text = await res.text();
   if (!res.ok) {

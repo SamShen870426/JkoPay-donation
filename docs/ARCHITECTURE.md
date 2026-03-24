@@ -83,7 +83,7 @@ HTTP
   constants/        tabs、charity-themes、theme（設計 token）
 
 對外 I/O
-  api/donationClient.ts      buildUrl、fetchDonationPage（Zod parse 成功回應）
+  api/donationClient.ts      buildDonationItemsListUrl、fetchDonationPage（Zod parse 成功回應）
   api/donation-api-error.ts  對應 BFF 錯誤 body
 
 可重用 UI
@@ -97,31 +97,86 @@ HTTP
 
 ---
 
-## 單元測試與整合測試 — 適性與現況
+## 測試策略（單元／整合）
 
-### 整體評估
+設計原則：**單元測試**隔離 I/O（mock Prisma、`fetch`、Service）；**整合測試**驗證「多層組合」——BFF 為 **HTTP → Prisma → MySQL**，Web 為 **畫面 → hooks → 真實 fetch 由 MSW 攔截**（不依賴本機是否啟 BFF）。
 
-分層清楚、**純函式與可注入依賴** 已具備，**適合**補齊單元測試；整合測試需額外接上 **Fastify inject** 或真實 HTTP，以及 **測試用 DB**（或 Docker 中的 MySQL）。
+### 指令（根目錄）
 
-### BFF（`@jkopay/bff`）
+| 指令 | 說明 |
+|------|------|
+| `npm test` | 僅 **單元**：BFF + Web 一般 `vitest.config`（排除 `*.integration.*`）。 |
+| `npm run test:integration` | **整合**：先跑 BFF `vitest.integration.config.ts`，再跑 Web 整合設定。 |
 
-| 類型 | 適性 | 現況與建議 |
-|------|------|------------|
-| 單元 | 高 | 已有 `src/lib/pagination.test.ts`（Vitest）。可擴充：`DonationService` 注入 mock `DonationRepository`；Repository 可對 `PrismaClient` 做 mock／test double；契約 Zod 可對邊界值做 parse 測試。 |
-| 整合 | 中高 | `createApp` + `buildDependencies({ donationService: mock })` 用 `app.inject({ url: '...' })` 可測路由與錯誤格式而不碰 DB。若要測 Prisma，建議獨立 `DATABASE_URL`、migrate + seed 或 transaction rollback 策略；本機 DB 啟動見 SETUP。 |
+本機與 CI 前置條件見 [SETUP.md](./SETUP.md)「整合測試」一節。
 
-根目錄 `npm test` 目前僅轉發到 BFF 的 `vitest run`。
+---
 
-### Web（`@jkopay/web`）
+### BFF（`apps/bff`）
 
-| 類型 | 適性 | 現況與建議 |
-|------|------|------------|
-| 單元 | 中高 | 尚未在 `package.json` 掛測試指令；`fetchDonationPage` 可 mock `fetch`；`useDonationList` 可用 Vitest + `@testing-library/react` + 假 timer 測 debounce／abort。 |
-| 整合／E2E | 中 | 可選 MSW 模擬 API，或 Playwright／Cypress 對 dev server 做端對端；需設定 `VITE_API_BASE` 指向 mock 或測試 BFF。 |
+#### 設定檔
+
+| 檔案 | 用途 |
+|------|------|
+| `vitest.config.ts` | 單元：`environment: node`，`exclude` `**/*.integration.test.ts`。 |
+| `vitest.integration.config.ts` | 整合：`include` 僅 `**/*.integration.test.ts`、`setupFiles` 載入 `src/test/integration-setup.ts`（`dotenv` → `apps/bff/.env`）、關閉檔案並行、拉長 timeout。 |
+
+#### 單元測試（檔案與焦點）
+
+| 檔案 | 焦點 |
+|------|------|
+| `src/lib/pagination.test.ts` | keyset 多取一筆、`nextCursor`。 |
+| `src/modules/donation/donation.service.test.ts` | mock `DonationRepository`：參數傳遞、分頁、`PrismaClientKnownRequestError` → `AppError`。 |
+| `src/modules/donation/donation.repository.test.ts` | mock `donationItem.findMany`：`where`（theme、OR 搜尋、游標）。 |
+| `src/modules/donation/donation.transformer.test.ts` | DTO、`ASSET_CDN_BASE`／`logoKey` 分支。 |
+| `src/modules/donation/donation.routes.test.ts` | mock `DonationService` + `app.inject`：驗證錯誤、成功 body、回應 Zod 不符 → 500。 |
+| `src/contracts/donation-list-query.test.ts` | 共用契約 `donationListQuerySchema`（coerce、`theme` 邊界）。 |
+
+#### 整合測試（真實 DB）
+
+| 檔案 | 焦點 |
+|------|------|
+| `src/modules/donation/donation-api.integration.test.ts` | `RUN_INTEGRATION=1` 時執行；`buildDependencies` 真實 `PrismaClient` + `createApp` + `inject`。以 Prisma `count` 對照 API 筆數、`theme` 篩選、關鍵字搜尋命中 seed、keyset 第二頁 id 不重疊、缺 `category` 仍 400。 |
+
+未設 `RUN_INTEGRATION=1` 時，此檔整組 **`describe.skipIf`**，僅跑整合設定會顯示 skipped（方便 CI 分 job）。
+
+---
+
+### Web（`apps/web`）
+
+#### 設定檔
+
+| 檔案 | 用途 |
+|------|------|
+| `vitest.config.ts` | 單元：jsdom、`define` 固定 `VITE_API_BASE`，`exclude` `**/*.integration.test.*`。 |
+| `vitest.integration.config.ts` | 整合：僅 `**/*.integration.test.*`、`setupFiles`：`integration-msw-setup.ts`（`jest-dom`、`IntersectionObserver` stub、**MSW `listen`／`resetHandlers`／`close`**、`@testing-library/react` **`cleanup`**）。 |
+
+#### 單元測試
+
+| 檔案 | 焦點 |
+|------|------|
+| `src/api/donationClient.test.ts` | `buildDonationItemsListUrl`、`fetch` mock、非 JSON。 |
+| `src/api/donation-api-error.test.ts` | 契約錯誤 body vs `HTTP_ERROR`。 |
+| `src/hooks/useDebouncedValue.test.tsx` | 假時間 debounce。 |
+| `src/hooks/useDonationList.test.tsx` | mock `fetch`：第一頁帶 `theme`、錯誤狀態。 |
+
+#### 整合測試（MSW + 畫面）
+
+| 檔案 | 焦點 |
+|------|------|
+| `src/test/msw-server.ts` | `setupServer`；`GET …/donation-items` 依 `theme` query 回不同標題（驗證前端帶參與重查）。 |
+| `src/components/DonationListScreen.integration.test.tsx` | `render(<App />)`：`user-event` 開啟主題 sheet、選「動物保護」，斷言卡片標題變更。 |
+
+---
 
 ### Contracts（`@jkopay/contracts`）
 
-- Zod schema 與型別推導適合 **小範圍單元測試**（合法／非法 query、錯誤 body 形狀），可選擇在 contracts 或 BFF 內一併測試以避免重複建置負擔。
+- 列表 query 等 schema 的單元測試放在 **BFF** `src/contracts/`，與已建置的 `@jkopay/contracts` 一致，避免在 contracts 套件再掛 Vitest。
+
+### 後續可擴充（未實作）
+
+- **E2E**：Playwright／Cypress 對 `vite preview` + 真實 BFF 或完整 docker-compose。
+- **BFF 整合與 CI**：獨立 job 啟 MySQL service、`prisma migrate deploy` + `db seed` 後執行 `npm run test:integration -w @jkopay/bff`。
 
 ---
 
