@@ -1,0 +1,205 @@
+import { useEffect, useRef, useState } from 'react';
+import type { DonationCategory } from '@jkopay/contracts';
+import { DEFAULT_DONATION_CATEGORY } from '../constants/tabs.js';
+import {
+  CARD_LIST_MARGIN_X_PX,
+  LAYOUT_LIST_INNER_PADDING_TOP_PX,
+  SEARCH_EXPANDED_PANEL_MARGIN_BOTTOM_PX,
+  SEARCH_EXPANDED_PANEL_PADDING_TOP_PX,
+  SEARCH_EXPANDED_PANEL_PADDING_X_PX,
+  SEARCH_EXPANDED_PANEL_STACK_GAP_PX,
+  THEME_PAGE_BG,
+  THEME_PRIMARY,
+} from '../constants/theme.js';
+import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
+import { useDonationList } from '../hooks/useDonationList.js';
+import { Button } from '../ui/button.js';
+import { DonationCard } from './DonationCard.js';
+import { DonationEmptyState } from './DonationEmptyState.js';
+import { DonationListFooterCap } from './DonationListFooterCap.js';
+import { DonationListInitialLoading } from './DonationListInitialLoading.js';
+import { DonationLoadMoreSkeleton } from './DonationListSkeleton.js';
+import { MobileStatusBar } from './MobileStatusBar.js';
+import { SearchBar } from './SearchBar.js';
+import { TabBar } from './TabBar.js';
+
+const SEARCH_DEBOUNCE_MS = 350;
+
+export function DonationListScreen() {
+  const [category, setCategory] = useState<DonationCategory>(DEFAULT_DONATION_CATEGORY);
+  const [searchInput, setSearchInput] = useState('');
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const debouncedQ = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
+  const {
+    items,
+    isLoading,
+    isFetchingNextPage,
+    error,
+    errorCode,
+    hasMore,
+    isAwaitingDebouncedSearch,
+    loadMore,
+  } = useDonationList(category, debouncedQ, { rawSearchQuery: searchInput });
+
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          void loadMore();
+        }
+      },
+      { root: null, rootMargin: '120px', threshold: 0 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [loadMore]);
+
+  /** debounce 尚未套用，或首屏／換條件重查且列表已清空 — 一律置中 spinner，不暫留舊列表 */
+  const showCenteredListLoading =
+    isAwaitingDebouncedSearch || (isLoading && items.length === 0);
+  const hasActiveSearch = debouncedQ.trim().length > 0;
+  const showEmptySearch =
+    !isLoading &&
+    !error &&
+    items.length === 0 &&
+    hasActiveSearch &&
+    !isAwaitingDebouncedSearch;
+  const showEmptyBrowse =
+    !isLoading &&
+    !error &&
+    items.length === 0 &&
+    !hasActiveSearch &&
+    !isAwaitingDebouncedSearch;
+
+  return (
+    <div
+      className="flex h-full min-h-0 flex-col"
+      style={{ backgroundColor: THEME_PAGE_BG }}
+    >
+      <header
+        className="shrink-0 text-white"
+        style={{ backgroundColor: THEME_PRIMARY, paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
+        <MobileStatusBar />
+        <div className="relative flex h-[44px] w-full shrink-0 items-center justify-center px-2">
+          <Button
+            variant="icon-ghost"
+            size="iconLg"
+            className="absolute left-2"
+            aria-label="返回"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M15 6 9 12l6 6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </Button>
+          <h1 className="text-[17px] font-semibold tracking-wide">所有捐款項目</h1>
+        </div>
+      </header>
+
+      {searchExpanded ? (
+        <div
+          className="search-panel-reveal shrink-0 bg-white"
+          style={{ marginBottom: SEARCH_EXPANDED_PANEL_MARGIN_BOTTOM_PX }}
+        >
+          <div
+            className="flex flex-col"
+            style={{ gap: SEARCH_EXPANDED_PANEL_STACK_GAP_PX }}
+          >
+            <div
+              style={{
+                paddingTop: SEARCH_EXPANDED_PANEL_PADDING_TOP_PX,
+                paddingLeft: SEARCH_EXPANDED_PANEL_PADDING_X_PX,
+                paddingRight: SEARCH_EXPANDED_PANEL_PADDING_X_PX,
+              }}
+            >
+              <SearchBar
+                value={searchInput}
+                onChange={setSearchInput}
+                placeholder="搜尋公益團體、專案、商品"
+                expanded
+                onExpandedChange={setSearchExpanded}
+              />
+            </div>
+            <TabBar active={category} onChange={setCategory} />
+          </div>
+        </div>
+      ) : (
+        <>
+          <TabBar active={category} onChange={setCategory} />
+          <SearchBar
+            value={searchInput}
+            onChange={setSearchInput}
+            placeholder="搜尋公益團體、專案、商品"
+            expanded={false}
+            onExpandedChange={setSearchExpanded}
+          />
+        </>
+      )}
+
+      <main className="relative min-h-0 flex-1 overflow-y-auto bg-[#F4F4F6]">
+        {error ? (
+          <div
+            className="py-10 text-center text-sm text-red-600"
+            style={{ paddingLeft: CARD_LIST_MARGIN_X_PX, paddingRight: CARD_LIST_MARGIN_X_PX }}
+          >
+            <p>{error}</p>
+            {errorCode ? (
+              <p className="mt-1 text-xs text-neutral-500">代碼：{errorCode}</p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {showCenteredListLoading ? <DonationListInitialLoading /> : null}
+
+        {showEmptySearch ? (
+          <div
+            style={{ paddingLeft: CARD_LIST_MARGIN_X_PX, paddingRight: CARD_LIST_MARGIN_X_PX }}
+          >
+            <DonationEmptyState variant="search" />
+          </div>
+        ) : null}
+
+        {showEmptyBrowse ? (
+          <div
+            style={{ paddingLeft: CARD_LIST_MARGIN_X_PX, paddingRight: CARD_LIST_MARGIN_X_PX }}
+          >
+            <DonationEmptyState variant="browse" />
+          </div>
+        ) : null}
+
+        {!error && !showCenteredListLoading && items.length > 0 ? (
+          <>
+            <div
+              className="flex flex-col gap-3 pb-8"
+              style={{
+                paddingLeft: CARD_LIST_MARGIN_X_PX,
+                paddingRight: CARD_LIST_MARGIN_X_PX,
+                ...(LAYOUT_LIST_INNER_PADDING_TOP_PX > 0
+                  ? { paddingTop: LAYOUT_LIST_INNER_PADDING_TOP_PX }
+                  : {}),
+              }}
+            >
+              {items.map((item) => (
+                <DonationCard key={item.id} item={item} />
+              ))}
+              {hasMore && isFetchingNextPage ? <DonationLoadMoreSkeleton /> : null}
+              {!hasMore && !isFetchingNextPage ? <DonationListFooterCap /> : null}
+            </div>
+          </>
+        ) : null}
+
+        <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
+      </main>
+    </div>
+  );
+}

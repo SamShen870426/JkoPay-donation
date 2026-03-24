@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# 本機連線字串（首次可執行 npm run prisma:setup，會自動從 .env.example 建立）
+apps/bff/.env

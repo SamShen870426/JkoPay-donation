@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum DonationCategory {
+  groups
+  projects
+  products
+}
+
+model DonationItem {
+  id          Int              @id @default(autoincrement())
+  category    DonationCategory
+  titleZh     String           @map("title_zh") @db.VarChar(255)
+  summaryZh   String           @map("summary_zh") @db.VarChar(512)
+  logoKey     String           @map("logo_key") @db.VarChar(512)
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  @@index([category, id])
+  @@map("donation_items")
+}

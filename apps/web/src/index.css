@@ -1,0 +1,38 @@
+@import 'tailwindcss';
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/**
+ * 包進原生 App WebView、且頂部已由 App 畫系統狀態列時：
+ * 由原生對 WebView 注入 `<html class="webview-native-chrome">` 即可隱藏我們模擬的 44px 列，
+ * 避免「狀態列重疊／總高度多 44」。
+ */
+html.webview-native-chrome [data-status-bar-sim] {
+  display: none;
+}
+
+/* 展開搜尋白底區塊：由上往下入場（transform-origin top） */
+@keyframes search-panel-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-panel-reveal {
+  transform-origin: top center;
+  animation: search-panel-reveal 0.22s ease-out both;
+}
