@@ -23,6 +23,7 @@ export class DonationService {
     try {
       rows = await this.repo.findByCategoryKeyset({
         category: query.category,
+        theme: query.theme,
         q: query.q,
         cursorId,
         take: limit + 1,

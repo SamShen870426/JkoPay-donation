@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { DonationCategory } from '@jkopay/contracts';
+import type { CharityTheme, DonationCategory } from '@jkopay/contracts';
 import { DEFAULT_DONATION_CATEGORY } from '../constants/tabs.js';
 import {
   CARD_LIST_MARGIN_X_PX,
@@ -17,6 +17,8 @@ import { Button } from '../ui/button.js';
 import { DonationCard } from './DonationCard.js';
 import { DonationEmptyState } from './DonationEmptyState.js';
 import { DonationListFooterCap } from './DonationListFooterCap.js';
+import { CHARITY_THEME_LABELS } from '../constants/charity-themes.js';
+import { CharityThemeFilterSheet } from './CharityThemeFilterSheet.js';
 import { DonationListInitialLoading } from './DonationListInitialLoading.js';
 import { DonationLoadMoreSkeleton } from './DonationListSkeleton.js';
 import { MobileStatusBar } from './MobileStatusBar.js';
@@ -29,6 +31,8 @@ export function DonationListScreen() {
   const [category, setCategory] = useState<DonationCategory>(DEFAULT_DONATION_CATEGORY);
   const [searchInput, setSearchInput] = useState('');
   const [searchExpanded, setSearchExpanded] = useState(false);
+  const [charityThemeFilter, setCharityThemeFilter] = useState<CharityTheme | null>(null);
+  const [themeSheetOpen, setThemeSheetOpen] = useState(false);
   const debouncedQ = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
   const {
     items,
@@ -39,7 +43,13 @@ export function DonationListScreen() {
     hasMore,
     isAwaitingDebouncedSearch,
     loadMore,
-  } = useDonationList(category, debouncedQ, { rawSearchQuery: searchInput });
+  } = useDonationList(category, debouncedQ, {
+    rawSearchQuery: searchInput,
+    ...(charityThemeFilter != null ? { theme: charityThemeFilter } : {}),
+  });
+
+  const filterChipLabel =
+    charityThemeFilter != null ? CHARITY_THEME_LABELS[charityThemeFilter] : '全部';
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -77,7 +87,7 @@ export function DonationListScreen() {
 
   return (
     <div
-      className="flex h-full min-h-0 flex-col"
+      className="relative flex h-full min-h-0 flex-col"
       style={{ backgroundColor: THEME_PAGE_BG }}
     >
       <header
@@ -128,6 +138,8 @@ export function DonationListScreen() {
                 placeholder="搜尋公益團體、專案、商品"
                 expanded
                 onExpandedChange={setSearchExpanded}
+                filterChipLabel={filterChipLabel}
+                onFilterClick={() => setThemeSheetOpen(true)}
               />
             </div>
             <TabBar active={category} onChange={setCategory} />
@@ -142,6 +154,8 @@ export function DonationListScreen() {
             placeholder="搜尋公益團體、專案、商品"
             expanded={false}
             onExpandedChange={setSearchExpanded}
+            filterChipLabel={filterChipLabel}
+            onFilterClick={() => setThemeSheetOpen(true)}
           />
         </>
       )}
@@ -200,6 +214,13 @@ export function DonationListScreen() {
 
         <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
       </main>
+
+      <CharityThemeFilterSheet
+        open={themeSheetOpen}
+        onClose={() => setThemeSheetOpen(false)}
+        selected={charityThemeFilter}
+        onSelect={(t) => setCharityThemeFilter(t)}
+      />
     </div>
   );
 }

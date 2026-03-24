@@ -30,7 +30,7 @@ export type SearchFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size
   };
 
 /**
- * 展開搜尋：外框 focus 無色；caret #007AFF。
+ * 展開搜尋：外框 focus 無色；caret #2E7DD9
  * Figma Search field：40 高、radius 20、black/5、內距 9/12、gap 9；magnifier 18×18 #757575。
  */
 export function SearchField({

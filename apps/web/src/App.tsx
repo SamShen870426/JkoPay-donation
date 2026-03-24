@@ -11,7 +11,8 @@ export function App() {
 
   return (
     <div
-      className="mx-auto flex h-full min-h-[var(--layout-min-h)] w-full max-w-[var(--layout-w)] flex-col shadow-sm"
+      data-mobile-frame
+      className="relative mx-auto flex h-full min-h-[var(--layout-min-h)] w-full max-w-[var(--layout-w)] flex-col overflow-x-hidden shadow-sm"
       style={frameStyle}
     >
       <DonationListScreen />

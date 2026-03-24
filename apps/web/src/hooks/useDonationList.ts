@@ -1,11 +1,13 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import type { DonationCategory, DonationListItem } from '@jkopay/contracts';
+import type { CharityTheme, DonationCategory, DonationListItem } from '@jkopay/contracts';
 import { DonationApiError } from '../api/donation-api-error.js';
 import { fetchDonationPage } from '../api/donationClient.js';
 
 export type UseDonationListOptions = {
   /** 未 debounce 的輸入，用於顯示「搜尋處理中」等 UX */
   rawSearchQuery?: string;
+  /** 公益主題篩選；省略表示「全部」 */
+  theme?: CharityTheme;
 };
 
 type Status = {
@@ -32,6 +34,7 @@ export function useDonationList(
   options: UseDonationListOptions = {},
 ): Status & { loadMore: () => Promise<void> } {
   const raw = options.rawSearchQuery ?? debouncedQ;
+  const theme = options.theme;
   const isAwaitingDebouncedSearch =
     raw.trim() !== debouncedQ.trim() && raw.trim().length > 0;
 
@@ -70,7 +73,12 @@ export function useDonationList(
     cursorRef.current = null;
     setHasMore(true);
 
-    fetchDonationPage({ category, q: debouncedQ, signal: ac.signal })
+    fetchDonationPage({
+      category,
+      q: debouncedQ,
+      signal: ac.signal,
+      ...(theme != null ? { theme } : {}),
+    })
       .then((res) => {
         if (epoch !== requestEpoch.current) return;
         setItems(res.items);
@@ -88,7 +96,7 @@ export function useDonationList(
       });
 
     return () => ac.abort();
-  }, [category, debouncedQ]);
+  }, [category, debouncedQ, theme]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || isLoading || isFetchingNextPage) return;
@@ -100,7 +108,12 @@ export function useDonationList(
     setError(null);
     setErrorCode(null);
     try {
-      const res = await fetchDonationPage({ category, q: debouncedQ, cursor });
+      const res = await fetchDonationPage({
+        category,
+        q: debouncedQ,
+        cursor,
+        ...(theme != null ? { theme } : {}),
+      });
       if (identity !== listIdentityEpoch.current) return;
       setItems((prev) => {
         const seen = new Set(prev.map((i) => i.id));
@@ -124,7 +137,7 @@ export function useDonationList(
         setIsFetchingNextPage(false);
       }
     }
-  }, [category, debouncedQ, hasMore, isLoading, isFetchingNextPage]);
+  }, [category, debouncedQ, theme, hasMore, isLoading, isFetchingNextPage]);
 
   return {
     items,

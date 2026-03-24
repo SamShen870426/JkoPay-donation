@@ -1,11 +1,12 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
-import type { DonationCategory } from '@jkopay/contracts';
+import type { CharityTheme, DonationCategory } from '@jkopay/contracts';
 
 export class DonationRepository {
   constructor(private readonly db: PrismaClient) {}
 
   async findByCategoryKeyset(input: {
     category: DonationCategory;
+    theme?: CharityTheme;
     q: string;
     cursorId: number | null;
     take: number;
@@ -13,6 +14,7 @@ export class DonationRepository {
     const q = input.q.trim();
     const where: Prisma.DonationItemWhereInput = {
       category: input.category,
+      ...(input.theme != null ? { theme: input.theme } : {}),
       ...(input.cursorId != null ? { id: { gt: input.cursorId } } : {}),
       ...(q.length > 0
         ? {

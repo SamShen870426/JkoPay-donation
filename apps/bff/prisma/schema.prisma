@@ -13,14 +13,35 @@ enum DonationCategory {
   products
 }
 
+enum CharityTheme {
+  child_youth_care
+  animal_protection
+  special_medical
+  elderly_care
+  disability_services
+  women_care
+  sports_development
+  education_advocacy
+  environmental_protection
+  multicultural
+  media_communication
+  public_issues
+  culture_arts
+  community_development
+  poverty_relief
+  international_relief
+}
+
 model DonationItem {
   id          Int              @id @default(autoincrement())
   category    DonationCategory
+  theme       CharityTheme
   titleZh     String           @map("title_zh") @db.VarChar(255)
   summaryZh   String           @map("summary_zh") @db.VarChar(512)
   logoKey     String           @map("logo_key") @db.VarChar(512)
   createdAt   DateTime         @default(now()) @map("created_at")
 
   @@index([category, id])
+  @@index([category, theme, id])
   @@map("donation_items")
 }

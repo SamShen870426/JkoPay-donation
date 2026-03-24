@@ -1,4 +1,4 @@
-﻿import {
+import {
   CARD_LIST_MARGIN_X_PX,
   FILTER_CHIP_BG,
   LAYOUT_FILTER_ROW_PX,
@@ -15,6 +15,9 @@ type Props = {
   placeholder?: string;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
+  /** 收合列左側 chip 顯示文字（例如「全部」「動物保護」） */
+  filterChipLabel: string;
+  onFilterClick: () => void;
 };
 
 function ChevronDown({ className }: { className?: string }) {
@@ -44,6 +47,8 @@ export function SearchBar({
   placeholder = '搜尋',
   expanded,
   onExpandedChange,
+  filterChipLabel,
+  onFilterClick,
 }: Props) {
   const gutter = { paddingLeft: CARD_LIST_MARGIN_X_PX, paddingRight: CARD_LIST_MARGIN_X_PX };
   const filterRowHeight = { height: LAYOUT_FILTER_ROW_PX, minHeight: LAYOUT_FILTER_ROW_PX };
@@ -83,22 +88,19 @@ export function SearchBar({
       className="box-border flex shrink-0 items-center justify-between"
       style={{ ...gutter, ...filterRowHeight, backgroundColor: THEME_PAGE_BG }}
     >
-      <div
-        className="relative box-border flex h-[34px] w-[73px] shrink-0 items-center justify-center gap-[3px] rounded-[6px] py-[6px] pl-[12px] pr-[12px]"
+      <button
+        type="button"
+        className="box-border flex h-[34px] min-w-[73px] shrink-0 cursor-pointer items-center justify-center gap-[3px] rounded-[6px] py-[6px] pl-[12px] pr-[12px]"
         style={{ backgroundColor: FILTER_CHIP_BG }}
+        aria-label="選擇類別"
+        aria-haspopup="dialog"
+        onClick={onFilterClick}
       >
-        <select
-          className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-          aria-label="篩選"
-          defaultValue="all"
-        >
-          <option value="all">全部</option>
-        </select>
-        <span className="pointer-events-none flex items-center gap-[3px] text-[14px] font-medium text-neutral-800">
-          全部
+        <span className="flex items-center gap-[3px] text-[14px] font-medium text-neutral-800">
+          {filterChipLabel}
           <ChevronDown className="text-neutral-600" />
         </span>
-      </div>
+      </button>
       <Button
         variant="searchMagnifier"
         size="searchTrigger"

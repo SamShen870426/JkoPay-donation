@@ -36,3 +36,30 @@ html.webview-native-chrome [data-status-bar-sim] {
   transform-origin: top center;
   animation: search-panel-reveal 0.22s ease-out both;
 }
+
+/* 類別篩選 bottom sheet：由下往上入場 */
+@keyframes charity-theme-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes charity-theme-sheet-enter {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.charity-theme-sheet-backdrop {
+  animation: charity-theme-backdrop-enter 0.22s ease-out both;
+}
+
+.charity-theme-sheet-panel {
+  animation: charity-theme-sheet-enter 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
+}

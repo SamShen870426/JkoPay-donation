@@ -14,7 +14,7 @@ const buttonVariants = cva(
           'rounded-[20px] bg-[#EDEDF1] text-neutral-700 active:brightness-[0.97]',
         text: 'rounded-md px-1 py-2 text-[15px]',
         /** Figma cancel：16/24、py-6 px-12 左、theme/text-link */
-        link: 'rounded-md py-1.5 pl-3 pr-0 text-[16px] leading-6 font-normal text-[#007AFF] active:opacity-80',
+        link: 'rounded-md py-1.5 pl-3 pr-0 text-[16px] leading-6 font-normal text-[#2E7DD9] active:opacity-80',
         'icon-ghost': 'rounded-full text-white active:bg-white/10',
       },
       size: {

@@ -1,4 +1,3 @@
-import { CARD_LIST_MARGIN_X_PX, LAYOUT_LIST_INNER_PADDING_TOP_PX } from '../constants/theme.js';
 import { DonationCardShell } from '../ui/card.js';
 import { Skeleton } from '../ui/skeleton.js';
 
