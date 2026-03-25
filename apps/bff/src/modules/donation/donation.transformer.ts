@@ -1,12 +1,19 @@
 import type { Prisma } from '@prisma/client';
-import type { CharityTheme, DonationCategory, DonationListItem } from '@jkopay/contracts';
+import type {
+  CharityProductDetail,
+  CharityTheme,
+  DonationCategory,
+  DonationListItem,
+} from '@jkopay/contracts';
 
 export const donationItemListInclude = {
   itemThemes: {
     orderBy: { sortOrder: 'asc' as const },
   },
+  organization: true,
   charityProduct: {
     include: {
+      organization: true,
       images: { orderBy: { sortOrder: 'asc' as const } },
       options: { orderBy: { sortOrder: 'asc' as const } },
     },
@@ -17,7 +24,7 @@ export type DonationItemListRow = Prisma.DonationItemGetPayload<{
   include: typeof donationItemListInclude;
 }>;
 
-function resolveImageUrl(logoKey: string): string {
+export function resolveImageUrl(logoKey: string): string {
   if (logoKey.startsWith('http://') || logoKey.startsWith('https://')) {
     return logoKey;
   }
@@ -30,7 +37,7 @@ function resolveImageUrl(logoKey: string): string {
 }
 
 /** 專案卡主圖（較寬比例） */
-function resolveHeroImageUrl(heroKey: string): string {
+export function resolveHeroImageUrl(heroKey: string): string {
   if (heroKey.startsWith('http://') || heroKey.startsWith('https://')) {
     return heroKey;
   }
@@ -51,6 +58,18 @@ function resolveProductCoverUrl(imageKey: string): string {
   }
   const base = process.env.ASSET_CDN_BASE?.replace(/\/$/, '') ?? 'https://picsum.photos/seed';
   return `${base}/${encodeURIComponent(imageKey)}/400/400`;
+}
+
+/** 詳情輪播大圖（正方形） */
+function resolveProductGalleryImageUrl(imageKey: string): string {
+  if (imageKey.startsWith('http://') || imageKey.startsWith('https://')) {
+    return imageKey;
+  }
+  if (imageKey.startsWith('/')) {
+    return imageKey;
+  }
+  const base = process.env.ASSET_CDN_BASE?.replace(/\/$/, '') ?? 'https://picsum.photos/seed';
+  return `${base}/${encodeURIComponent(imageKey)}/800/800`;
 }
 
 function pickPrimaryImageKey(
@@ -74,7 +93,8 @@ function optionPriceBounds(options: { unitPriceAmount: number }[]): { min: numbe
 }
 
 export function toDonationListItem(row: DonationItemListRow): DonationListItem {
-  const organizationName = row.organizationNameZh?.trim() || undefined;
+  const organizationName =
+    row.organization?.nameZh?.trim() || row.organizationNameZh?.trim() || undefined;
   const heroKey = row.heroImageKey?.trim();
   const heroImageUrl =
     heroKey != null && heroKey.length > 0 ? resolveHeroImageUrl(heroKey) : undefined;
@@ -93,6 +113,9 @@ export function toDonationListItem(row: DonationItemListRow): DonationListItem {
     ...(organizationName != null ? { organizationName } : {}),
     ...(heroImageUrl != null ? { heroImageUrl } : {}),
     ...(themes != null && themes.length > 0 ? { themes } : {}),
+    ...(row.category === 'groups' && row.organizationId != null
+      ? { organizationId: String(row.organizationId) }
+      : {}),
   };
 
   const cp = row.charityProduct;
@@ -102,11 +125,11 @@ export function toDonationListItem(row: DonationItemListRow): DonationListItem {
 
   const bounds = optionPriceBounds(cp.options);
   const coverKey = pickPrimaryImageKey(cp.images);
-  if (bounds == null || coverKey == null) {
+  if (bounds == null || coverKey == null || cp.organization == null) {
     return base;
   }
 
-  const org = cp.organizationNameZh.trim();
+  const org = cp.organization.nameZh.trim();
   const currency = cp.currency.trim() || 'TWD';
 
   return {
@@ -116,5 +139,51 @@ export function toDonationListItem(row: DonationItemListRow): DonationListItem {
     productPriceMin: bounds.min,
     productPriceMax: bounds.max,
     productCurrency: currency,
+  };
+}
+
+export function toCharityProductDetail(row: DonationItemListRow): CharityProductDetail | null {
+  if (row.category !== 'products') return null;
+  const cp = row.charityProduct;
+  if (cp == null || cp.organization == null) return null;
+
+  const sortedImages = [...cp.images].sort((a, b) => a.sortOrder - b.sortOrder);
+  if (sortedImages.length === 0) return null;
+
+  const imageUrls = sortedImages.map((im) => resolveProductGalleryImageUrl(im.imageKey));
+  const primaryIdx = sortedImages.findIndex((im) => im.isPrimary);
+  const primaryImageIndex = primaryIdx >= 0 ? primaryIdx : 0;
+
+  const bounds = optionPriceBounds(cp.options);
+  if (bounds == null) return null;
+
+  const sortedOptions = [...cp.options].sort((a, b) => a.sortOrder - b.sortOrder);
+  const options = sortedOptions.map((o) => ({
+    id: String(o.id),
+    label: o.labelZh,
+    unitPrice: o.unitPriceAmount,
+    stockQuantity: o.stockQuantity,
+    sortOrder: o.sortOrder,
+  }));
+
+  const themes: CharityTheme[] = row.itemThemes.map((it) => it.theme as CharityTheme);
+  const currency = cp.currency.trim() || 'TWD';
+
+  return {
+    donationItemId: String(row.id),
+    title: row.titleZh,
+    subtitle: row.summaryZh,
+    organizationName: cp.organization.nameZh.trim(),
+    organizationId: String(cp.organization.id),
+    organizationLogoUrl: resolveImageUrl(cp.organization.logoKey),
+    currency,
+    priceMin: bounds.min,
+    priceMax: bounds.max,
+    shippingFeeAmount: cp.shippingFeeAmount,
+    imageUrls,
+    primaryImageIndex,
+    themes,
+    description: cp.descriptionZh,
+    options,
   };
 }

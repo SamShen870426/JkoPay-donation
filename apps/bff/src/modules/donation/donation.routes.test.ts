@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import type { DonationListResponse } from '@jkopay/contracts';
+import type { CharityProductDetail, DonationListResponse } from '@jkopay/contracts';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildDependencies } from '../../di/dependencies.js';
 import { createApp } from '../../app.js';
@@ -7,10 +7,11 @@ import type { DonationService } from './donation.service.js';
 
 describe('GET /api/v1/donation-items', () => {
   const list = vi.fn();
+  const getCharityProductDetail = vi.fn();
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    const donationService = { list } as unknown as DonationService;
+    const donationService = { list, getCharityProductDetail } as unknown as DonationService;
     app = await createApp(buildDependencies({ donationService }), { logger: false });
   });
 
@@ -68,5 +69,37 @@ describe('GET /api/v1/donation-items', () => {
 
     expect(res.statusCode).toBe(500);
     expect((res.json() as { error: string }).error).toBe('RESPONSE_CONTRACT_MISMATCH');
+  });
+
+  it('GET …/charity-product 呼叫 service 並回傳契約 JSON', async () => {
+    const detail: CharityProductDetail = {
+      donationItemId: '1',
+      title: 'T',
+      subtitle: 'S',
+      organizationName: 'O',
+      organizationId: '1',
+      organizationLogoUrl: 'https://example.com/l.png',
+      currency: 'TWD',
+      priceMin: 100,
+      priceMax: 200,
+      shippingFeeAmount: 50,
+      imageUrls: ['https://example.com/a.png'],
+      primaryImageIndex: 0,
+      themes: ['animal_protection'],
+      description: 'D',
+      options: [
+        { id: '10', label: '單入', unitPrice: 100, stockQuantity: 3, sortOrder: 0 },
+      ],
+    };
+    getCharityProductDetail.mockResolvedValueOnce(detail);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/donation-items/1/charity-product',
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual(detail);
+    expect(getCharityProductDetail).toHaveBeenCalledWith('1');
   });
 });

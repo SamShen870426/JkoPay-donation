@@ -8,4 +8,8 @@ export async function registerDonationRoutes(
 ) {
   const donationController = createDonationController(deps.donationService);
   app.get('/api/v1/donation-items', donationController.list);
+  app.get(
+    '/api/v1/donation-items/:id/charity-product',
+    donationController.getCharityProduct,
+  );
 }

@@ -7,10 +7,13 @@ import { DonationService } from './donation.service.js';
 import type { DonationItemListRow } from './donation.transformer.js';
 
 function mockRepo(
-  impl: Partial<Pick<DonationRepository, 'findByCategoryKeyset'>> = {},
+  impl: Partial<
+    Pick<DonationRepository, 'findByCategoryKeyset' | 'findByIdWithListInclude'>
+  > = {},
 ): DonationRepository {
   return {
     findByCategoryKeyset: vi.fn(),
+    findByIdWithListInclude: vi.fn(),
     ...impl,
   } as unknown as DonationRepository;
 }
@@ -22,6 +25,8 @@ const prismaRow = (id: number): DonationItemListRow => ({
   summaryZh: '摘要',
   logoKey: '/donation-demo-logo.png',
   createdAt: new Date(),
+  organizationId: null,
+  organization: null,
   organizationNameZh: null,
   heroImageKey: null,
   itemThemes: [{ donationItemId: id, theme: 'animal_protection', sortOrder: 0 }],
@@ -107,6 +112,34 @@ describe('DonationService.list', () => {
 
     expect(out.pageInfo.hasMore).toBe(false);
     expect(out.pageInfo.nextCursor).toBeNull();
+  });
+
+  it('getCharityProductDetail：無效 id 拋 VALIDATION_ERROR', async () => {
+    const findByIdWithListInclude = vi.fn();
+    const service = new DonationService(mockRepo({ findByIdWithListInclude }));
+
+    await expect(service.getCharityProductDetail('x')).rejects.toSatisfy(
+      (e: unknown) => e instanceof AppError && e.code === 'VALIDATION_ERROR' && e.statusCode === 400,
+    );
+    expect(findByIdWithListInclude).not.toHaveBeenCalled();
+  });
+
+  it('getCharityProductDetail：查無列為 NOT_FOUND', async () => {
+    const findByIdWithListInclude = vi.fn().mockResolvedValue(null);
+    const service = new DonationService(mockRepo({ findByIdWithListInclude }));
+
+    await expect(service.getCharityProductDetail('99')).rejects.toSatisfy(
+      (e: unknown) => e instanceof AppError && e.code === 'NOT_FOUND' && e.statusCode === 404,
+    );
+  });
+
+  it('getCharityProductDetail：非義賣列為 NOT_FOUND', async () => {
+    const findByIdWithListInclude = vi.fn().mockResolvedValue(prismaRow(1));
+    const service = new DonationService(mockRepo({ findByIdWithListInclude }));
+
+    await expect(service.getCharityProductDetail('1')).rejects.toSatisfy(
+      (e: unknown) => e instanceof AppError && e.code === 'NOT_FOUND',
+    );
   });
 
   it('PrismaClientKnownRequestError 轉為 DATABASE_ERROR', async () => {

@@ -1,4 +1,5 @@
 import type { DonationListItem } from '@jkopay/contracts';
+import { Link } from 'react-router-dom';
 import { CharitySaleProductCard } from './CharitySaleProductCard.js';
 import { DonationCardShell } from '../ui/card.js';
 import { DonationProjectCard } from './DonationProjectCard.js';
@@ -34,7 +35,7 @@ export function DonationCard({ item }: Props) {
     return <DonationProjectCard item={item} />;
   }
 
-  return (
+  const shell = (
     <DonationCardShell>
       <div className="relative h-[56px] w-[56px] shrink-0 self-center overflow-hidden rounded-lg bg-neutral-100">
         <img
@@ -49,14 +50,27 @@ export function DonationCard({ item }: Props) {
           aria-hidden
         />
       </div>
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center">
-        <h2 className="line-clamp-2 text-[16px] font-semibold leading-snug text-neutral-900">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center overflow-hidden">
+        <h2 className="truncate text-[16px] font-semibold leading-5 text-neutral-900">
           {item.title}
         </h2>
-        <p className="mt-0.5 line-clamp-2 text-[13px] leading-relaxed text-neutral-500">
+        <p className="mt-0.5 truncate text-[13px] leading-5 text-neutral-500">
           {item.description}
         </p>
       </div>
     </DonationCardShell>
   );
+
+  if (item.category === 'groups' && item.organizationId != null) {
+    return (
+      <Link
+        to={`/organizations/${item.organizationId}`}
+        className="block min-w-0 rounded-[12px] outline-none ring-inset focus-visible:ring-2 focus-visible:ring-[#C9191D]/40"
+      >
+        {shell}
+      </Link>
+    );
+  }
+
+  return shell;
 }

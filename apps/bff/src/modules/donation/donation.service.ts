@@ -1,9 +1,14 @@
 import { Prisma } from '@prisma/client';
-import type { DonationListQuery, DonationListResponse } from '@jkopay/contracts';
+import {
+  donationItemIdParamSchema,
+  type CharityProductDetail,
+  type DonationListQuery,
+  type DonationListResponse,
+} from '@jkopay/contracts';
 import { AppError } from '../../errors/app-error.js';
 import { nextCursorFromPage, trimExtraForCursor } from '../../lib/pagination.js';
 import type { DonationRepository } from './donation.repository.js';
-import { toDonationListItem } from './donation.transformer.js';
+import { toCharityProductDetail, toDonationListItem } from './donation.transformer.js';
 
 function parseCursorId(raw: string | undefined): number | null {
   if (raw == null || raw === '') return null;
@@ -45,5 +50,35 @@ export class DonationService {
         hasMore,
       },
     };
+  }
+
+  async getCharityProductDetail(rawId: string): Promise<CharityProductDetail> {
+    const parsed = donationItemIdParamSchema.safeParse(rawId);
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', 'Invalid id', 400, parsed.error.flatten());
+    }
+
+    const id = Number.parseInt(parsed.data, 10);
+
+    let row;
+    try {
+      row = await this.repo.findByIdWithListInclude(id);
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new AppError('DATABASE_ERROR', 'Database request failed', 500);
+      }
+      throw e;
+    }
+
+    if (row == null) {
+      throw new AppError('NOT_FOUND', 'Charity product not found', 404);
+    }
+
+    const dto = toCharityProductDetail(row);
+    if (dto == null) {
+      throw new AppError('NOT_FOUND', 'Charity product not found', 404);
+    }
+
+    return dto;
   }
 }

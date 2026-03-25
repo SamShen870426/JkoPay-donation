@@ -1,6 +1,21 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { DonationItemListRow } from './donation.transformer.js';
-import { toDonationListItem } from './donation.transformer.js';
+import { toCharityProductDetail, toDonationListItem } from './donation.transformer.js';
+
+function mockOrg(partial: { id?: number; nameZh?: string; logoKey?: string } = {}) {
+  return {
+    id: partial.id ?? 1,
+    nameZh: partial.nameZh ?? '協會',
+    logoKey: partial.logoKey ?? '/static/logo.png',
+    profileBannerKey: null,
+    phone: null,
+    email: null,
+    websiteUrl: null,
+    registrationNumberZh: null,
+    descriptionZh: '',
+    createdAt: new Date('2025-01-01'),
+  };
+}
 
 const base: DonationItemListRow = {
   id: 1,
@@ -9,6 +24,8 @@ const base: DonationItemListRow = {
   summaryZh: '摘要文字',
   logoKey: '/static/logo.png',
   createdAt: new Date('2025-01-01'),
+  organizationId: null,
+  organization: null,
   organizationNameZh: null,
   heroImageKey: null,
   itemThemes: [{ donationItemId: 1, theme: 'animal_protection', sortOrder: 0 }],
@@ -60,6 +77,15 @@ describe('toDonationListItem', () => {
     expect(dto.themes).toBeUndefined();
   });
 
+  it('團體列有 organizationId 時輸出供個人頁連結', () => {
+    const dto = toDonationListItem({
+      ...base,
+      organizationId: 42,
+      organization: mockOrg({ id: 42, nameZh: '綁定團體' }),
+    });
+    expect(dto.organizationId).toBe('42');
+  });
+
   it('專案列輸出 themes（slug 與篩選類別一致）', () => {
     const row: DonationItemListRow = {
       ...base,
@@ -88,7 +114,8 @@ describe('toDonationListItem', () => {
       charityProduct: {
         id: 1,
         donationItemId: 1,
-        organizationNameZh: '社團法人貓咪也瘋狂公益協會',
+        organizationId: 1,
+        organization: mockOrg({ nameZh: '社團法人貓咪也瘋狂公益協會' }),
         descriptionZh: '說明',
         currency: 'TWD',
         shippingFeeAmount: 100,
@@ -118,7 +145,8 @@ describe('toDonationListItem', () => {
       charityProduct: {
         id: 1,
         donationItemId: 1,
-        organizationNameZh: '某團體',
+        organizationId: 1,
+        organization: mockOrg({ nameZh: '某團體' }),
         descriptionZh: '說明',
         currency: 'TWD',
         shippingFeeAmount: 0,
@@ -129,5 +157,49 @@ describe('toDonationListItem', () => {
     const dto = toDonationListItem(row);
     expect(dto.productCoverImageUrl).toBeUndefined();
     expect(dto.productPriceMin).toBeUndefined();
+  });
+
+  it('toCharityProductDetail 輸出詳情 DTO', () => {
+    delete process.env.ASSET_CDN_BASE;
+    const row: DonationItemListRow = {
+      ...base,
+      category: 'products',
+      titleZh: '主標',
+      summaryZh: '副標',
+      itemThemes: [{ donationItemId: 1, theme: 'animal_protection', sortOrder: 0 }],
+      charityProduct: {
+        id: 9,
+        donationItemId: 1,
+        organizationId: 1,
+        organization: mockOrg({ nameZh: '某某協會', logoKey: '/org-logo.png' }),
+        descriptionZh: '說明\n-------\n內文',
+        currency: 'TWD',
+        shippingFeeAmount: 100,
+        images: [
+          { id: 1, productId: 9, imageKey: 'b', sortOrder: 1, isPrimary: true },
+          { id: 2, productId: 9, imageKey: 'a', sortOrder: 0, isPrimary: false },
+        ],
+        options: [
+          { id: 10, productId: 9, labelZh: 'B款', unitPriceAmount: 300, stockQuantity: 2, sortOrder: 1 },
+          { id: 11, productId: 9, labelZh: 'A款', unitPriceAmount: 100, stockQuantity: 5, sortOrder: 0 },
+        ],
+      },
+    };
+    const d = toCharityProductDetail(row);
+    expect(d).not.toBeNull();
+    expect(d!.donationItemId).toBe('1');
+    expect(d!.subtitle).toBe('副標');
+    expect(d!.imageUrls).toHaveLength(2);
+    expect(d!.imageUrls[0]).toContain('a');
+    expect(d!.imageUrls[1]).toContain('b');
+    expect(d!.primaryImageIndex).toBe(1);
+    expect(d!.priceMin).toBe(100);
+    expect(d!.priceMax).toBe(300);
+    expect(d!.options.map((o) => o.label)).toEqual(['A款', 'B款']);
+    expect(d!.options[0]!.id).toBe('11');
+    expect(d!.themes).toEqual(['animal_protection']);
+    expect(d!.shippingFeeAmount).toBe(100);
+    expect(d!.organizationLogoUrl).toBe('/org-logo.png');
+    expect(d!.organizationId).toBe('1');
   });
 });

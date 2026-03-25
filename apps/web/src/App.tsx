@@ -1,4 +1,7 @@
 import type { CSSProperties } from 'react';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { CharityOrganizationProfileScreen } from './components/CharityOrganizationProfileScreen.js';
+import { CharityProductDetailScreen } from './components/CharityProductDetailScreen.js';
 import { DonationListScreen } from './components/DonationListScreen.js';
 import { LAYOUT_FRAME_WIDTH_PX, LAYOUT_MIN_HEIGHT_PX, THEME_PAGE_BG } from './constants/theme.js';
 
@@ -15,7 +18,13 @@ export function App() {
       className="relative mx-auto flex h-full min-h-[var(--layout-min-h)] w-full max-w-[var(--layout-w)] flex-col overflow-x-hidden shadow-sm"
       style={frameStyle}
     >
-      <DonationListScreen />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<DonationListScreen />} />
+          <Route path="/organizations/:id" element={<CharityOrganizationProfileScreen />} />
+          <Route path="/products/:id" element={<CharityProductDetailScreen />} />
+        </Routes>
+      </BrowserRouter>
     </div>
   );
 }

@@ -32,6 +32,40 @@ enum CharityTheme {
   international_relief
 }
 
+/// 公益團體主檔（列表／個人頁／綁定專案與義賣）
+model CharityOrganization {
+  id                   Int    @id @default(autoincrement())
+  nameZh               String @map("name_zh") @db.VarChar(255)
+  logoKey              String @map("logo_key") @db.VarChar(512)
+  /// 個人頁頂部背景圖（可空，前端可用純色代替）
+  profileBannerKey     String? @map("profile_banner_key") @db.VarChar(512)
+  phone                String? @map("phone") @db.VarChar(64)
+  email                String? @map("email") @db.VarChar(255)
+  websiteUrl           String? @map("website_url") @db.VarChar(512)
+  registrationNumberZh String? @map("registration_number_zh") @db.VarChar(255)
+  descriptionZh        String @map("description_zh") @db.Text
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  themes          CharityOrganizationTheme[]
+  donationItems   DonationItem[]
+  charityProducts CharityProduct[]
+
+  @@map("charity_organizations")
+}
+
+/// 團體個人頁「分類」標籤（與篩選 CharityTheme 同一套）
+model CharityOrganizationTheme {
+  organizationId Int          @map("organization_id")
+  theme          CharityTheme
+  sortOrder      Int          @default(0) @map("sort_order")
+
+  organization CharityOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, theme])
+  @@index([theme, organizationId])
+  @@map("charity_organization_themes")
+}
+
 /// 捐款項目可關聯多個「公益主題」（與篩選 sheet 同一套 CharityTheme）
 model DonationItemTheme {
   donationItemId Int          @map("donation_item_id")
@@ -51,36 +85,41 @@ model DonationItem {
   titleZh            String           @map("title_zh") @db.VarChar(255)
   summaryZh          String           @map("summary_zh") @db.VarChar(512)
   logoKey            String           @map("logo_key") @db.VarChar(512)
-  /// 捐款專案卡：所屬團體（紅字）
+  /// 捐款專案卡：所屬團體（紅字）；若已綁 organizationId 可與主檔並存供過渡
   organizationNameZh String?          @map("organization_name_zh") @db.VarChar(255)
   /// 捐款專案卡：頂部大圖（與 logo 分離）
   heroImageKey       String?          @map("hero_image_key") @db.VarChar(512)
+  /// 綁定公益團體主檔。原則：每個 CharityOrganization 應至少有一筆 category=groups 列且帶此欄，列表與關鍵字搜尋才會命中團名；義賣／專案列亦應與主檔一致。
+  organizationId     Int?             @map("organization_id")
   createdAt          DateTime         @default(now()) @map("created_at")
 
+  organization   CharityOrganization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   itemThemes     DonationItemTheme[]
   /// 義賣商品擴充（僅 category=products 時使用，1:1）
   charityProduct CharityProduct?
 
   @@index([category, id])
+  @@index([organizationId, category, id])
   @@map("donation_items")
 }
 
 /// 義賣商品：圖片／選項／運費等（列表價格區間由 options 的單價 min/max 推導）
 model CharityProduct {
-  id                 Int    @id @default(autoincrement())
-  donationItemId     Int    @unique @map("donation_item_id")
-  /// 列表與詳情：所屬公益團體名稱
-  organizationNameZh String @map("organization_name_zh") @db.VarChar(255)
+  id              Int    @id @default(autoincrement())
+  donationItemId  Int    @unique @map("donation_item_id")
+  organizationId  Int    @map("organization_id")
   /// 商品說明（詳情頁用）
-  descriptionZh      String @map("description_zh") @db.Text
-  currency             String @default("TWD") @db.VarChar(8)
+  descriptionZh   String @map("description_zh") @db.Text
+  currency        String @default("TWD") @db.VarChar(8)
   /// 運費（與單價同單位：整數，TWD 為元）
-  shippingFeeAmount  Int    @default(0) @map("shipping_fee_amount")
+  shippingFeeAmount Int    @default(0) @map("shipping_fee_amount")
 
   donationItem DonationItem            @relation(fields: [donationItemId], references: [id], onDelete: Cascade)
+  organization CharityOrganization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   images       CharityProductImage[]
   options      CharityProductOption[]
 
+  @@index([organizationId])
   @@map("charity_products")
 }
 

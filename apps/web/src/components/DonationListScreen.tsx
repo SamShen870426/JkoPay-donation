@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CharityTheme, DonationCategory } from '@jkopay/contracts';
-import { DEFAULT_DONATION_CATEGORY } from '../constants/tabs.js';
+import {
+  readDonationListUiState,
+  writeDonationListUiState,
+} from '../lib/donation-list-ui-storage.js';
 import {
   CARD_LIST_MARGIN_X_PX,
   LAYOUT_LIST_INNER_PADDING_TOP_PX,
@@ -31,10 +34,13 @@ import { TabBar } from './TabBar.js';
 const SEARCH_DEBOUNCE_MS = 350;
 
 export function DonationListScreen() {
-  const [category, setCategory] = useState<DonationCategory>(DEFAULT_DONATION_CATEGORY);
-  const [searchInput, setSearchInput] = useState('');
-  const [searchExpanded, setSearchExpanded] = useState(false);
-  const [charityThemeFilter, setCharityThemeFilter] = useState<CharityTheme | null>(null);
+  const initialUi = readDonationListUiState();
+  const [category, setCategory] = useState<DonationCategory>(initialUi.category);
+  const [searchInput, setSearchInput] = useState(initialUi.searchInput);
+  const [searchExpanded, setSearchExpanded] = useState(initialUi.searchExpanded);
+  const [charityThemeFilter, setCharityThemeFilter] = useState<CharityTheme | null>(
+    initialUi.theme,
+  );
   const [themeSheetOpen, setThemeSheetOpen] = useState(false);
   const debouncedQ = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
   const {
@@ -55,6 +61,15 @@ export function DonationListScreen() {
     charityThemeFilter != null ? CHARITY_THEME_LABELS[charityThemeFilter] : '全部';
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    writeDonationListUiState({
+      category,
+      theme: charityThemeFilter,
+      searchExpanded,
+      searchInput,
+    });
+  }, [category, charityThemeFilter, searchExpanded, searchInput]);
 
   useEffect(() => {
     const el = sentinelRef.current;

@@ -1,6 +1,13 @@
 import {
+  charityOrganizationIdParamSchema,
+  charityOrganizationProfileResponseSchema,
+  charityOrganizationProjectsQuerySchema,
+  charityProductDetailSchema,
+  donationItemIdParamSchema,
   donationListQuerySchema,
   donationListResponseSchema,
+  type CharityOrganizationProfileResponse,
+  type CharityProductDetail,
   type CharityTheme,
   type DonationCategory,
   type DonationListItem,
@@ -39,6 +46,33 @@ export function buildDonationItemsListUrl(
   return `${apiBase}/api/v1/donation-items?${sp.toString()}`;
 }
 
+export function buildCharityProductDetailUrl(
+  donationItemId: string,
+  apiBase: string = import.meta.env.VITE_API_BASE ?? '',
+): string {
+  const id = donationItemIdParamSchema.parse(donationItemId);
+  return `${apiBase}/api/v1/donation-items/${encodeURIComponent(id)}/charity-product`;
+}
+
+export async function fetchCharityProductDetail(input: {
+  id: string;
+  signal?: AbortSignal;
+}): Promise<CharityProductDetail> {
+  const url = buildCharityProductDetailUrl(input.id);
+  const res = await fetch(url, { signal: input.signal });
+  const text = await res.text();
+  if (!res.ok) {
+    throwDonationErrorFromBody(res, text);
+  }
+  let json: unknown;
+  try {
+    json = JSON.parse(text) as unknown;
+  } catch {
+    throw new Error('Invalid JSON from donation API');
+  }
+  return charityProductDetailSchema.parse(json);
+}
+
 export async function fetchDonationPage(input: {
   category: DonationCategory;
   q: string;
@@ -61,4 +95,71 @@ export async function fetchDonationPage(input: {
   return donationListResponseSchema.parse(json);
 }
 
-export type { DonationListItem };
+export function buildCharityOrganizationProfileUrl(
+  organizationId: string,
+  apiBase: string = import.meta.env.VITE_API_BASE ?? '',
+): string {
+  const id = charityOrganizationIdParamSchema.parse(organizationId);
+  return `${apiBase}/api/v1/charity-organizations/${encodeURIComponent(id)}`;
+}
+
+export function buildCharityOrganizationProjectsUrl(
+  organizationId: string,
+  params: { cursor?: string; limit?: number },
+  apiBase: string = import.meta.env.VITE_API_BASE ?? '',
+): string {
+  const id = charityOrganizationIdParamSchema.parse(organizationId);
+  const q = charityOrganizationProjectsQuerySchema.parse({
+    cursor: params.cursor,
+    limit: params.limit ?? 10,
+  });
+  const sp = new URLSearchParams();
+  if (q.cursor) sp.set('cursor', q.cursor);
+  sp.set('limit', String(q.limit));
+  return `${apiBase}/api/v1/charity-organizations/${encodeURIComponent(id)}/projects?${sp.toString()}`;
+}
+
+export async function fetchCharityOrganizationProfile(input: {
+  organizationId: string;
+  signal?: AbortSignal;
+}): Promise<CharityOrganizationProfileResponse> {
+  const url = buildCharityOrganizationProfileUrl(input.organizationId);
+  const res = await fetch(url, { signal: input.signal });
+  const text = await res.text();
+  if (!res.ok) {
+    throwDonationErrorFromBody(res, text);
+  }
+  let json: unknown;
+  try {
+    json = JSON.parse(text) as unknown;
+  } catch {
+    throw new Error('Invalid JSON from donation API');
+  }
+  return charityOrganizationProfileResponseSchema.parse(json);
+}
+
+export async function fetchCharityOrganizationProjectsPage(input: {
+  organizationId: string;
+  cursor?: string;
+  limit?: number;
+  signal?: AbortSignal;
+}): Promise<DonationListResponse> {
+  const url = buildCharityOrganizationProjectsUrl(input.organizationId, {
+    cursor: input.cursor,
+    limit: input.limit,
+  });
+  const res = await fetch(url, { signal: input.signal });
+  const text = await res.text();
+  if (!res.ok) {
+    throwDonationErrorFromBody(res, text);
+  }
+  let json: unknown;
+  try {
+    json = JSON.parse(text) as unknown;
+  } catch {
+    throw new Error('Invalid JSON from donation API');
+  }
+  return donationListResponseSchema.parse(json);
+}
+
+export type { CharityOrganizationProfileResponse, CharityProductDetail, DonationListItem };

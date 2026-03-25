@@ -42,22 +42,22 @@ export function DonationProjectCard({ item }: Props) {
           className="h-full w-full object-cover"
         />
       </div>
-      <div className="px-3 pb-3 pt-2">
+      <div className="min-w-0 overflow-hidden px-3 pb-3 pt-2">
         {item.organizationName ? (
           <p
-            className="mb-1 line-clamp-2 text-[13px] font-medium leading-snug"
+            className="mb-1 truncate text-[13px] font-medium leading-5"
             style={{ color: THEME_PRIMARY }}
           >
             {item.organizationName}
           </p>
         ) : null}
-        <h2 className="line-clamp-2 text-[16px] font-semibold leading-snug text-neutral-900">
+        <h2 className="truncate text-[16px] font-semibold leading-5 text-neutral-900">
           {item.title}
         </h2>
         {labels.length > 0 ? (
-          <div className="mt-2 flex min-w-0 items-start gap-1.5 text-[12px] leading-relaxed text-neutral-500">
-            <TagRowIcon className="mt-0.5 shrink-0 text-neutral-400" />
-            <p className="min-w-0">
+          <div className="mt-2 flex min-w-0 items-center gap-1.5 text-[12px] leading-5 text-neutral-500">
+            <TagRowIcon className="shrink-0 text-neutral-400" />
+            <p className="min-w-0 truncate">
               {labels.map((label, i) => (
                 <span key={`${label}-${i}`}>
                   {i > 0 ? <span className="text-neutral-300"> · </span> : null}

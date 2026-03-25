@@ -63,3 +63,12 @@ html.webview-native-chrome [data-status-bar-sim] {
 .charity-theme-sheet-panel {
   animation: charity-theme-sheet-enter 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
+
+/* 購買數量 bottom sheet：與類別篩選相同入場節奏 */
+.purchase-qty-sheet-backdrop {
+  animation: charity-theme-backdrop-enter 0.22s ease-out both;
+}
+
+.purchase-qty-sheet-panel {
+  animation: charity-theme-sheet-enter 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
+}

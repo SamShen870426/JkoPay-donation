@@ -25,11 +25,12 @@ export class DonationRepository {
               { titleZh: { contains: q } },
               { summaryZh: { contains: q } },
               { organizationNameZh: { contains: q } },
+              { organization: { is: { nameZh: { contains: q } } } },
               {
                 charityProduct: {
                   is: {
                     OR: [
-                      { organizationNameZh: { contains: q } },
+                      { organization: { is: { nameZh: { contains: q } } } },
                       { descriptionZh: { contains: q } },
                       { options: { some: { labelZh: { contains: q } } } },
                     ],
@@ -45,6 +46,13 @@ export class DonationRepository {
       where,
       orderBy: { id: 'asc' },
       take: input.take,
+      include: donationItemListInclude,
+    });
+  }
+
+  async findByIdWithListInclude(id: number) {
+    return this.db.donationItem.findUnique({
+      where: { id },
       include: donationItemListInclude,
     });
   }

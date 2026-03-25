@@ -33,11 +33,12 @@ describe('DonationRepository.findByCategoryKeyset', () => {
           { titleZh: { contains: '基金會' } },
           { summaryZh: { contains: '基金會' } },
           { organizationNameZh: { contains: '基金會' } },
+          { organization: { is: { nameZh: { contains: '基金會' } } } },
           {
             charityProduct: {
               is: {
                 OR: [
-                  { organizationNameZh: { contains: '基金會' } },
+                  { organization: { is: { nameZh: { contains: '基金會' } } } },
                   { descriptionZh: { contains: '基金會' } },
                   { options: { some: { labelZh: { contains: '基金會' } } } },
                 ],
