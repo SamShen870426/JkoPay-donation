@@ -14,31 +14,38 @@ BFF 與 Web 皆依賴 `@jkopay/contracts`；契約變更後需先建置 contract
 
 ---
 
-## 資料庫設計與「關聯」
+## 資料庫設計與關聯
 
-目前 **沒有多表外鍵關聯**，採 **單一實體表** + **列舉欄位** 表達分類與主題。
+**`DonationItem`** 對應三種 Tab；**公益主題**（與篩選 sheet 相同之 `CharityTheme`）以 **多對多** `donation_item_themes` 掛在項目上（一筆可對應多個主題）。列表 API 在 **`category === projects`** 時才把 `themes[]` 回給前端畫專案卡底部類別列。
 
 ### 實體
 
 | Prisma model | 對應資料表 | 說明 |
 |--------------|------------|------|
-| `DonationItem` | `donation_items` | 一筆可於列表顯示的捐贈相關項目（團體／專案／商品等 demo 資料） |
+| `DonationItem` | `donation_items` | 主檔；專案卡用 `organization_name_zh`、`hero_image_key` |
+| `DonationItemTheme` | `donation_item_themes` | `(donation_item_id, theme)` 複合主鍵 + `sort_order`；`theme` 為 `CharityTheme` enum |
 
-### 欄位概念
+### `DonationItem` 欄位概念
 
-- **`category`**：`DonationCategory` enum（`groups` | `projects` | `products`），對應前端 Tab。
-- **`theme`**：`CharityTheme` enum（如 `animal_protection`、`elderly_care` 等），對應公益主題篩選；與 `contracts` 的 `CHARITY_THEME_VALUES` 對齊。
-- **`titleZh` / `summaryZh` / `logoKey`**：列表顯示用中文標題、摘要、圖片路徑或 key。
-- **`id`**：整數主鍵，亦作 keyset 分頁游標來源。
+- **`category`**：`DonationCategory`（`groups` | `projects` | `products`）。
+- **`titleZh` / `summaryZh` / `logoKey`**：標題、摘要、小圖。
+- **`organizationNameZh` / `heroImageKey`（可空）**：**捐款專案卡**——紅字所屬團體、頂部大圖；API 為 `organizationName`、`heroImageUrl`。
+- **`id`**：整數主鍵、keyset 游標來源。
 
-### 索引（查詢路徑）
+### 篩選與索引
 
-- `(category, id)`：依分類 + id 遞增排序、無主題篩選時的分頁。
-- `(category, theme, id)`：同上，但帶 `theme` 篩選時較有利。
+- Query `theme`：存在 **任一** `itemThemes` 列即命中（`some`）。
+- `donation_item_themes` 上索引 `(theme, donation_item_id)` 利於篩選。
+- `donation_items`：`(category, id)` 利於分頁。
+- 關鍵字：`title_zh`、`summary_zh`、`organization_name_zh`。
 
-### 若未來要「真正的關聯」
+### 前端對應
 
-可再拆出 `Charity`、`Project`、`Product` 等表，以 `DonationItem` 指向對應 FK；目前 Phase 刻意維持扁平 schema 以降低複雜度。
+- **`category === 'projects'`** 且具 `heroImageUrl`／`organizationName`／`themes` 時用 **專案大卡**；底部文字由 `themes`（slug）經 `CHARITY_THEME_LABELS` 轉成與篩選相同的顯示名稱。
+
+### 後續擴充
+
+- 後台維護多選主題即寫入 `donation_item_themes`；若未來獨立「團體主檔」可將 `organizationNameZh` 改為 FK。
 
 ---
 
@@ -53,7 +60,7 @@ HTTP
   → modules/donation/donation.service.ts
         · 業務流程、游標解析、分頁裁剪（lib/pagination）
   → modules/donation/donation.repository.ts
-        · Prisma `where`（category、可選 theme、關鍵字 OR、id > cursor）
+        · Prisma `where`（category、可選 `itemThemes.some(theme)`、關鍵字 OR、id > cursor）
   → MySQL（Prisma Client）
 
 回傳給 HTTP 的 JSON：**不直接回 Prisma model**，經 donation.transformer 轉成契約中的 `DonationListItem`。
@@ -127,7 +134,7 @@ HTTP
 |------|------|
 | `src/lib/pagination.test.ts` | keyset 多取一筆、`nextCursor`。 |
 | `src/modules/donation/donation.service.test.ts` | mock `DonationRepository`：參數傳遞、分頁、`PrismaClientKnownRequestError` → `AppError`。 |
-| `src/modules/donation/donation.repository.test.ts` | mock `donationItem.findMany`：`where`（theme、OR 搜尋、游標）。 |
+| `src/modules/donation/donation.repository.test.ts` | mock `donationItem.findMany`：`where`（`itemThemes.some`、OR 搜尋、游標）。 |
 | `src/modules/donation/donation.transformer.test.ts` | DTO、`ASSET_CDN_BASE`／`logoKey` 分支。 |
 | `src/modules/donation/donation.routes.test.ts` | mock `DonationService` + `app.inject`：驗證錯誤、成功 body、回應 Zod 不符 → 500。 |
 | `src/contracts/donation-list-query.test.ts` | 共用契約 `donationListQuerySchema`（coerce、`theme` 邊界）。 |

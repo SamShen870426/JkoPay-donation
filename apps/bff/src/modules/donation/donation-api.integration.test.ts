@@ -67,7 +67,10 @@ describe.skipIf(!run)('Donation API — DB integration', () => {
 
   it('GET 列表：theme=animal_protection 與 DB 篩選筆數一致', async () => {
     const expected = await prisma.donationItem.count({
-      where: { category: 'groups', theme: 'animal_protection' },
+      where: {
+        category: 'groups',
+        itemThemes: { some: { theme: 'animal_protection' } },
+      },
     });
     expect(expected).toBeGreaterThan(0);
 

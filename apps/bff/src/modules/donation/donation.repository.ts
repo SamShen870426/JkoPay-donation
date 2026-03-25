@@ -14,13 +14,16 @@ export class DonationRepository {
     const q = input.q.trim();
     const where: Prisma.DonationItemWhereInput = {
       category: input.category,
-      ...(input.theme != null ? { theme: input.theme } : {}),
+      ...(input.theme != null
+        ? { itemThemes: { some: { theme: input.theme } } }
+        : {}),
       ...(input.cursorId != null ? { id: { gt: input.cursorId } } : {}),
       ...(q.length > 0
         ? {
             OR: [
               { titleZh: { contains: q } },
               { summaryZh: { contains: q } },
+              { organizationNameZh: { contains: q } },
             ],
           }
         : {}),
@@ -30,6 +33,11 @@ export class DonationRepository {
       where,
       orderBy: { id: 'asc' },
       take: input.take,
+      include: {
+        itemThemes: {
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
     });
   }
 }

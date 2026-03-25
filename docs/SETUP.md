@@ -32,7 +32,7 @@
    ```
 
    等同依序：`prisma:generate` → `prisma:migrate`（`prisma migrate deploy`）→ `prisma:seed`。  
-   Migration 目錄：`apps/bff/prisma/migrations/`（含主題欄位：`20250324120000_add_charity_theme`）。
+   Migration 目錄：`apps/bff/prisma/migrations/`（例：`20250324120000_add_charity_theme`、`20250325120000_donation_tags_project_card`、`20250326103000_charity_theme_m2m_remove_tags` 將標籤改為 `CharityTheme` 多對多）。
 
 4. **建置契約與應用（可選，正式建置前建議跑）**
 

@@ -42,7 +42,17 @@ export const donationListItemSchema = z.object({
   category: donationCategorySchema,
   title: z.string(),
   description: z.string(),
+  /** 列表左側小圖／專案卡可另用 heroImageUrl */
   imageUrl: z.string(),
+  /** 捐款專案：所屬團體（紅字） */
+  organizationName: z.string().optional(),
+  /** 捐款專案：頂部大圖 */
+  heroImageUrl: z.string().optional(),
+  /**
+   * 捐款專案底部「類別」列：與篩選 sheet 同一套 CharityTheme，可多個。
+   * 團體／商品列不帶此欄。
+   */
+  themes: z.array(charityThemeSchema).optional(),
 });
 
 export type DonationListItem = z.infer<typeof donationListItemSchema>;

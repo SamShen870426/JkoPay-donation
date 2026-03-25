@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AppError } from '../../errors/app-error.js';
 import type { DonationRepository } from './donation.repository.js';
 import { DonationService } from './donation.service.js';
+import type { DonationItemListRow } from './donation.transformer.js';
 
 function mockRepo(
   impl: Partial<Pick<DonationRepository, 'findByCategoryKeyset'>> = {},
@@ -14,14 +15,16 @@ function mockRepo(
   } as unknown as DonationRepository;
 }
 
-const prismaRow = (id: number) => ({
+const prismaRow = (id: number): DonationItemListRow => ({
   id,
-  category: 'groups' as const,
-  theme: 'animal_protection' as const,
+  category: 'groups',
   titleZh: `標題${id}`,
   summaryZh: '摘要',
   logoKey: '/donation-demo-logo.png',
   createdAt: new Date(),
+  organizationNameZh: null,
+  heroImageKey: null,
+  itemThemes: [{ donationItemId: id, theme: 'animal_protection', sortOrder: 0 }],
 });
 
 describe('DonationService.list', () => {

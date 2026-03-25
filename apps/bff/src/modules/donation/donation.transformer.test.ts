@@ -1,15 +1,17 @@
-import type { DonationItem as PrismaDonationItem } from '@prisma/client';
 import { afterEach, describe, expect, it } from 'vitest';
+import type { DonationItemListRow } from './donation.transformer.js';
 import { toDonationListItem } from './donation.transformer.js';
 
-const base: PrismaDonationItem = {
+const base: DonationItemListRow = {
   id: 1,
   category: 'groups',
-  theme: 'animal_protection',
   titleZh: '標題',
   summaryZh: '摘要文字',
   logoKey: '/static/logo.png',
   createdAt: new Date('2025-01-01'),
+  organizationNameZh: null,
+  heroImageKey: null,
+  itemThemes: [{ donationItemId: 1, theme: 'animal_protection', sortOrder: 0 }],
 };
 
 describe('toDonationListItem', () => {
@@ -45,7 +47,7 @@ describe('toDonationListItem', () => {
     );
   });
 
-  it('輸出欄位符合列表 DTO（字串 id、對應 title/description）', () => {
+  it('團體列不輸出 themes（即使 DB 有關聯，供篩選用）', () => {
     const dto = toDonationListItem(base);
     expect(dto).toEqual({
       id: '1',
@@ -54,5 +56,24 @@ describe('toDonationListItem', () => {
       description: '摘要文字',
       imageUrl: '/static/logo.png',
     });
+    expect(dto.themes).toBeUndefined();
+  });
+
+  it('專案列輸出 themes（slug 與篩選類別一致）', () => {
+    const row: DonationItemListRow = {
+      ...base,
+      category: 'projects',
+      organizationNameZh: '某某基金會',
+      heroImageKey: 'hero-key',
+      itemThemes: [
+        { donationItemId: 1, theme: 'public_issues', sortOrder: 0 },
+        { donationItemId: 1, theme: 'community_development', sortOrder: 1 },
+      ],
+    };
+    delete process.env.ASSET_CDN_BASE;
+    const dto = toDonationListItem(row);
+    expect(dto.organizationName).toBe('某某基金會');
+    expect(dto.heroImageUrl).toBe('https://picsum.photos/seed/hero-key/800/480');
+    expect(dto.themes).toEqual(['public_issues', 'community_development']);
   });
 });

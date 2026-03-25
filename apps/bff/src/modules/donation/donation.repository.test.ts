@@ -26,16 +26,25 @@ describe('DonationRepository.findByCategoryKeyset', () => {
     expect(findMany).toHaveBeenCalledWith({
       where: {
         category: 'groups',
-        theme: 'elderly_care',
+        itemThemes: { some: { theme: 'elderly_care' } },
         id: { gt: 100 },
-        OR: [{ titleZh: { contains: '基金會' } }, { summaryZh: { contains: '基金會' } }],
+        OR: [
+          { titleZh: { contains: '基金會' } },
+          { summaryZh: { contains: '基金會' } },
+          { organizationNameZh: { contains: '基金會' } },
+        ],
       },
       orderBy: { id: 'asc' },
       take: 21,
+      include: {
+        itemThemes: {
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
     });
   });
 
-  it('未指定 theme 時 where 不含 theme', async () => {
+  it('未指定 theme 時 where 不含 itemThemes 篩選', async () => {
     const { db, findMany } = createDbMock();
     const repo = new DonationRepository(db);
 
@@ -48,11 +57,11 @@ describe('DonationRepository.findByCategoryKeyset', () => {
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.not.objectContaining({ theme: expect.anything() }),
+        where: expect.not.objectContaining({ itemThemes: expect.anything() }),
       }),
     );
     const where = findMany.mock.calls[0]![0].where as Record<string, unknown>;
-    expect(where).not.toHaveProperty('theme');
+    expect(where).not.toHaveProperty('itemThemes');
   });
 
   it('游標為 null 時不加 id 條件', async () => {

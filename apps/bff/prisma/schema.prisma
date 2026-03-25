@@ -32,16 +32,33 @@ enum CharityTheme {
   international_relief
 }
 
+/// 捐款項目可關聯多個「公益主題」（與篩選 sheet 同一套 CharityTheme）
+model DonationItemTheme {
+  donationItemId Int          @map("donation_item_id")
+  theme          CharityTheme
+  sortOrder      Int          @default(0) @map("sort_order")
+
+  donationItem DonationItem @relation(fields: [donationItemId], references: [id], onDelete: Cascade)
+
+  @@id([donationItemId, theme])
+  @@index([theme, donationItemId])
+  @@map("donation_item_themes")
+}
+
 model DonationItem {
-  id          Int              @id @default(autoincrement())
-  category    DonationCategory
-  theme       CharityTheme
-  titleZh     String           @map("title_zh") @db.VarChar(255)
-  summaryZh   String           @map("summary_zh") @db.VarChar(512)
-  logoKey     String           @map("logo_key") @db.VarChar(512)
-  createdAt   DateTime         @default(now()) @map("created_at")
+  id                 Int              @id @default(autoincrement())
+  category           DonationCategory
+  titleZh            String           @map("title_zh") @db.VarChar(255)
+  summaryZh          String           @map("summary_zh") @db.VarChar(512)
+  logoKey            String           @map("logo_key") @db.VarChar(512)
+  /// 捐款專案卡：所屬團體（紅字）
+  organizationNameZh String?          @map("organization_name_zh") @db.VarChar(255)
+  /// 捐款專案卡：頂部大圖（與 logo 分離）
+  heroImageKey       String?          @map("hero_image_key") @db.VarChar(512)
+  createdAt          DateTime         @default(now()) @map("created_at")
+
+  itemThemes DonationItemTheme[]
 
   @@index([category, id])
-  @@index([category, theme, id])
   @@map("donation_items")
 }

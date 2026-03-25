@@ -1,10 +1,24 @@
 import type { DonationListItem } from '@jkopay/contracts';
 import { DonationCardShell } from '../ui/card.js';
+import { DonationProjectCard } from './DonationProjectCard.js';
 
 type Props = { item: DonationListItem };
 
-/** Figma charity card：CVA shell + 內容區 */
+function isProjectCardLayout(item: DonationListItem): boolean {
+  if (item.category !== 'projects') return false;
+  return (
+    item.heroImageUrl != null ||
+    item.organizationName != null ||
+    (item.themes != null && item.themes.length > 0)
+  );
+}
+
+/** 公益團體／商品：橫式小圖 + 標題摘要；捐款專案：大圖 + 團體 + 標籤列 */
 export function DonationCard({ item }: Props) {
+  if (isProjectCardLayout(item)) {
+    return <DonationProjectCard item={item} />;
+  }
+
   return (
     <DonationCardShell>
       <div className="relative h-[56px] w-[56px] shrink-0 self-center overflow-hidden rounded-lg bg-neutral-100">
