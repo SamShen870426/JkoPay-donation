@@ -52,6 +52,11 @@ describe('toDonationListItem', () => {
     expect(toDonationListItem(base).imageUrl).toBe('/static/logo.png');
   });
 
+  it('空白 logoKey 退回預設圖路徑', () => {
+    const row = { ...base, logoKey: '   ' };
+    expect(toDonationListItem(row).imageUrl).toBe('/donation-demo-logo.png');
+  });
+
   it('相對 logoKey 預設接 picsum seed path', () => {
     delete process.env.ASSET_CDN_BASE;
     const row = { ...base, logoKey: 'my-logo-key' };
@@ -105,6 +110,18 @@ describe('toDonationListItem', () => {
     expect(dto.organizationName).toBe('某某基金會');
     expect(dto.heroImageUrl).toBe('https://picsum.photos/seed/hero-key/800/480');
     expect(dto.themes).toEqual(['public_issues', 'community_development']);
+  });
+
+  it('專案列無主圖 key 時 heroImageUrl 為預設圖', () => {
+    const row: DonationItemListRow = {
+      ...base,
+      category: 'projects',
+      organizationNameZh: '某某基金會',
+      heroImageKey: null,
+      itemThemes: [{ donationItemId: 1, theme: 'public_issues', sortOrder: 0 }],
+    };
+    const dto = toDonationListItem(row);
+    expect(dto.heroImageUrl).toBe('/donation-demo-logo.png');
   });
 
   it('義賣商品列輸出 product* 欄位（首圖、團體、價格區間）', () => {
@@ -204,5 +221,34 @@ describe('toDonationListItem', () => {
     expect(d!.shippingFeeAmount).toBe(100);
     expect(d!.organizationLogoUrl).toBe('/org-logo.png');
     expect(d!.organizationId).toBe('1');
+  });
+
+  it('toCharityProductDetail 無商品圖時使用預設圖', () => {
+    delete process.env.ASSET_CDN_BASE;
+    const row: DonationItemListRow = {
+      ...base,
+      category: 'products',
+      titleZh: '主標',
+      summaryZh: '副標',
+      itemThemes: [{ donationItemId: 1, theme: 'animal_protection', sortOrder: 0 }],
+      charityProduct: {
+        id: 9,
+        donationItemId: 1,
+        organizationId: 1,
+        organization: mockOrg({ nameZh: '某某協會', logoKey: '/org-logo.png' }),
+        descriptionZh: '說明',
+        currency: 'TWD',
+        shippingFeeAmount: 100,
+        images: [],
+        options: [
+          { id: 10, productId: 9, labelZh: 'B款', unitPriceAmount: 300, stockQuantity: 2, sortOrder: 1 },
+          { id: 11, productId: 9, labelZh: 'A款', unitPriceAmount: 100, stockQuantity: 5, sortOrder: 0 },
+        ],
+      },
+    };
+    const d = toCharityProductDetail(row);
+    expect(d).not.toBeNull();
+    expect(d!.imageUrls).toEqual(['/donation-demo-logo.png']);
+    expect(d!.primaryImageIndex).toBe(0);
   });
 });

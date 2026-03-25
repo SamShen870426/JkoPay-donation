@@ -7,6 +7,13 @@ import type {
   DonationProjectDetail,
 } from '@jkopay/contracts';
 
+/**
+ * 缺圖、空 key 時 BFF 一律退回此前端靜態檔（與 `apps/web/public/donation-demo-logo.png` 對應）。
+ * 可設 `DONATION_FALLBACK_IMAGE_URL` 覆寫（須為絕對 URL 或同源 `/path`）。
+ */
+export const DONATION_FALLBACK_IMAGE_URL =
+  process.env.DONATION_FALLBACK_IMAGE_URL?.trim() || '/donation-demo-logo.png';
+
 export const donationItemListInclude = {
   itemThemes: {
     orderBy: { sortOrder: 'asc' as const },
@@ -39,51 +46,59 @@ export type DonationItemProjectDetailRow = Prisma.DonationItemGetPayload<{
 }>;
 
 export function resolveImageUrl(logoKey: string): string {
-  if (logoKey.startsWith('http://') || logoKey.startsWith('https://')) {
-    return logoKey;
+  const k = logoKey.trim();
+  if (k.length === 0) return DONATION_FALLBACK_IMAGE_URL;
+  if (k.startsWith('http://') || k.startsWith('https://')) {
+    return k;
   }
   /** 與前端同源靜態檔（如 `apps/web/public/donation-demo-logo.png` → `/donation-demo-logo.png`） */
-  if (logoKey.startsWith('/')) {
-    return logoKey;
+  if (k.startsWith('/')) {
+    return k;
   }
   const base = process.env.ASSET_CDN_BASE?.replace(/\/$/, '') ?? 'https://picsum.photos/seed';
-  return `${base}/${encodeURIComponent(logoKey)}/112/112`;
+  return `${base}/${encodeURIComponent(k)}/112/112`;
 }
 
 /** 專案卡主圖（較寬比例） */
 export function resolveHeroImageUrl(heroKey: string): string {
-  if (heroKey.startsWith('http://') || heroKey.startsWith('https://')) {
-    return heroKey;
+  const k = heroKey.trim();
+  if (k.length === 0) return DONATION_FALLBACK_IMAGE_URL;
+  if (k.startsWith('http://') || k.startsWith('https://')) {
+    return k;
   }
-  if (heroKey.startsWith('/')) {
-    return heroKey;
+  if (k.startsWith('/')) {
+    return k;
   }
   const base = process.env.ASSET_CDN_BASE?.replace(/\/$/, '') ?? 'https://picsum.photos/seed';
-  return `${base}/${encodeURIComponent(heroKey)}/800/480`;
+  return `${base}/${encodeURIComponent(k)}/800/480`;
 }
 
 /** 義賣列表首圖（正方形） */
 function resolveProductCoverUrl(imageKey: string): string {
-  if (imageKey.startsWith('http://') || imageKey.startsWith('https://')) {
-    return imageKey;
+  const k = imageKey.trim();
+  if (k.length === 0) return DONATION_FALLBACK_IMAGE_URL;
+  if (k.startsWith('http://') || k.startsWith('https://')) {
+    return k;
   }
-  if (imageKey.startsWith('/')) {
-    return imageKey;
+  if (k.startsWith('/')) {
+    return k;
   }
   const base = process.env.ASSET_CDN_BASE?.replace(/\/$/, '') ?? 'https://picsum.photos/seed';
-  return `${base}/${encodeURIComponent(imageKey)}/400/400`;
+  return `${base}/${encodeURIComponent(k)}/400/400`;
 }
 
 /** 詳情輪播大圖（正方形） */
 function resolveProductGalleryImageUrl(imageKey: string): string {
-  if (imageKey.startsWith('http://') || imageKey.startsWith('https://')) {
-    return imageKey;
+  const k = imageKey.trim();
+  if (k.length === 0) return DONATION_FALLBACK_IMAGE_URL;
+  if (k.startsWith('http://') || k.startsWith('https://')) {
+    return k;
   }
-  if (imageKey.startsWith('/')) {
-    return imageKey;
+  if (k.startsWith('/')) {
+    return k;
   }
   const base = process.env.ASSET_CDN_BASE?.replace(/\/$/, '') ?? 'https://picsum.photos/seed';
-  return `${base}/${encodeURIComponent(imageKey)}/800/800`;
+  return `${base}/${encodeURIComponent(k)}/800/800`;
 }
 
 function pickPrimaryImageKey(
@@ -109,9 +124,13 @@ function optionPriceBounds(options: { unitPriceAmount: number }[]): { min: numbe
 export function toDonationListItem(row: DonationItemListRow): DonationListItem {
   const organizationName =
     row.organization?.nameZh?.trim() || row.organizationNameZh?.trim() || undefined;
-  const heroKey = row.heroImageKey?.trim();
+  const heroKey = row.heroImageKey?.trim() ?? '';
   const heroImageUrl =
-    heroKey != null && heroKey.length > 0 ? resolveHeroImageUrl(heroKey) : undefined;
+    row.category === 'projects'
+      ? resolveHeroImageUrl(heroKey)
+      : heroKey.length > 0
+        ? resolveHeroImageUrl(heroKey)
+        : undefined;
 
   const themes: CharityTheme[] | undefined =
     row.category === 'projects' && row.itemThemes.length > 0
@@ -139,17 +158,21 @@ export function toDonationListItem(row: DonationItemListRow): DonationListItem {
 
   const bounds = optionPriceBounds(cp.options);
   const coverKey = pickPrimaryImageKey(cp.images);
-  if (bounds == null || coverKey == null || cp.organization == null) {
+  if (bounds == null || cp.organization == null) {
     return base;
   }
 
   const org = cp.organization.nameZh.trim();
   const currency = cp.currency.trim() || 'TWD';
+  const coverUrl =
+    coverKey != null && coverKey.trim() !== ''
+      ? resolveProductCoverUrl(coverKey)
+      : DONATION_FALLBACK_IMAGE_URL;
 
   return {
     ...base,
     productOrganizationName: org,
-    productCoverImageUrl: resolveProductCoverUrl(coverKey),
+    productCoverImageUrl: coverUrl,
     productPriceMin: bounds.min,
     productPriceMax: bounds.max,
     productCurrency: currency,
@@ -162,10 +185,12 @@ export function toCharityProductDetail(row: DonationItemListRow): CharityProduct
   if (cp == null || cp.organization == null) return null;
 
   const sortedImages = [...cp.images].sort((a, b) => a.sortOrder - b.sortOrder);
-  if (sortedImages.length === 0) return null;
-
-  const imageUrls = sortedImages.map((im) => resolveProductGalleryImageUrl(im.imageKey));
-  const primaryIdx = sortedImages.findIndex((im) => im.isPrimary);
+  const imageUrls =
+    sortedImages.length > 0
+      ? sortedImages.map((im) => resolveProductGalleryImageUrl(im.imageKey?.trim() ?? ''))
+      : [DONATION_FALLBACK_IMAGE_URL];
+  const primaryIdx =
+    sortedImages.length > 0 ? sortedImages.findIndex((im) => im.isPrimary) : 0;
   const primaryImageIndex = primaryIdx >= 0 ? primaryIdx : 0;
 
   const bounds = optionPriceBounds(cp.options);
@@ -214,12 +239,11 @@ export function toDonationProjectDetail(row: DonationItemProjectDetailRow): Dona
   let heroImageUrls: string[];
   let primaryHeroImageIndex: number;
   if (sortedHero.length > 0) {
-    heroImageUrls = sortedHero.map((im) => resolveHeroImageUrl(im.imageKey));
+    heroImageUrls = sortedHero.map((im) => resolveHeroImageUrl(im.imageKey?.trim() ?? ''));
     const p = sortedHero.findIndex((im) => im.isPrimary);
     primaryHeroImageIndex = p >= 0 ? p : 0;
   } else {
-    const key = row.heroImageKey?.trim();
-    if (key == null || key.length === 0) return null;
+    const key = row.heroImageKey?.trim() ?? '';
     heroImageUrls = [resolveHeroImageUrl(key)];
     primaryHeroImageIndex = 0;
   }

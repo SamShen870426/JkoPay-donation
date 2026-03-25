@@ -56,7 +56,8 @@
 |------|------|
 | `DATABASE_URL` | Prisma 連線字串；本機 Docker 預設見 `.env.example` |
 | `PORT` | BFF 監聽埠，預設 `4000` |
-| `ASSET_CDN_BASE` | 選填；`logo_key` 為相對路徑時組圖片 URL 的前綴 |
+| `ASSET_CDN_BASE` | 選填；當 `logo_key` / `hero_image_key` / 商品圖 `image_key` **不是** `http(s)://` 且**不是**以 `/` 開頭時，BFF 會以此為前綴組出圖片 URL；未設時預設走 picsum placeholder（部分網路環境可能無法載入） |
+| `DONATION_FALLBACK_IMAGE_URL` | 選填；欄位為空或僅空白時使用的預設圖 URL，預設為 `/donation-demo-logo.png`（與 Web `public` 靜態檔對應） |
 
 ### Web（Vite）
 
@@ -69,6 +70,23 @@
 ```env
 VITE_API_BASE=http://127.0.0.1:4000
 ```
+
+---
+
+## 捐款／義賣圖片要怎麼「上傳」？
+
+資料庫**不存圖檔二進位**，`DonationItem.hero_image_key`、`DonationProjectHeroImage.image_key`、`CharityOrganization.logo_key` 等欄位存的是**字串**，由 BFF `resolveImageUrl` / `resolveHeroImageUrl` 轉成前端 `<img src>` 可用的 URL。你可以擇一使用：
+
+1. **完整網址**（建議上線與正式素材）  
+   將圖放在公司 CDN、S3、Azure Blob 等，在 DB 寫 `https://…/project-123/hero.jpg`。BFF 會原樣回傳，無需再設 `ASSET_CDN_BASE`。
+
+2. **與 Web 同源靜態檔**（本機／簡報 demo）  
+   把檔案放在 `apps/web/public/`（例如 `apps/web/public/charity/heroes/fridge.jpg`），在 DB 寫 **`/charity/heroes/fridge.jpg`**（以 `/` 開頭）。瀏覽器會向目前網站網域請求該路徑。
+
+3. **僅存「素材代碼」**（與物件儲存約定 key）  
+   存例如 `heroes/fridge-2025`，並設定 `ASSET_CDN_BASE=https://你的-bucket-或-cdn`，由 BFF 拼出最終 URL（實際規則見 `apps/bff/src/modules/donation/donation.transformer.ts`）。
+
+本機提供 `apps/web/public/donation-demo-logo.png` 作為 seed 預設 logo；BFF 在 `logo_key`／`hero_image_key`／商品圖等**空值**時也會退回同一張（路徑 `/donation-demo-logo.png`，可選環境變數 `DONATION_FALLBACK_IMAGE_URL` 覆寫）。若你有一批正式圖檔，可把**檔案路徑或公開 URL 清單**交給協助開發者寫入欄位即可，無須把圖 binary 存進 MySQL。
 
 ---
 

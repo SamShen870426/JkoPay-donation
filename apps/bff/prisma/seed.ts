@@ -8,7 +8,17 @@ import { CHARITY_THEME_VALUES } from '@jkopay/contracts';
 
 const prisma = new PrismaClient();
 
+/** 與 `apps/web/public/donation-demo-logo.png` 對應（同源靜態檔；BFF 缺 key 時亦退回此路徑） */
 const DEMO_LOGO_KEY = '/donation-demo-logo.png';
+
+/**
+ * 專案主圖：建議存「完整 https URL」或同源 `/path`。
+ * 若只存任意字串，BFF 會用 `ASSET_CDN_BASE` 或預設拼 picsum，部分網路會擋導致破圖。
+ */
+function projectHeroPlaceholderUrl(seed: string): string {
+  const q = encodeURIComponent(seed).replace(/%20/g, '+');
+  return `https://placehold.co/800x480/f1f5f9/475569/png?text=${q}`;
+}
 
 type ThemeLink = { theme: CharityTheme; sortOrder: number };
 
@@ -443,10 +453,18 @@ const showcaseProjects: Array<{
     summaryZh:
       '串連社區共享物資，減少食物浪費並支援經濟弱勢家庭取得營養餐食。',
     orgKey: 'kaohsiung_hede',
-    heroImageKey: 'project-hero-community-fridge',
+    heroImageKey: projectHeroPlaceholderUrl('Community fridge'),
     heroGallery: [
-      { imageKey: 'project-hero-community-fridge', sortOrder: 0, isPrimary: true },
-      { imageKey: 'project-hero-community-fridge-2', sortOrder: 1, isPrimary: false },
+      {
+        imageKey: projectHeroPlaceholderUrl('Community fridge'),
+        sortOrder: 0,
+        isPrimary: true,
+      },
+      {
+        imageKey: projectHeroPlaceholderUrl('Community fridge 2'),
+        sortOrder: 1,
+        isPrimary: false,
+      },
     ],
     fundraisingLicenseZh: '1141365173',
     projectDetailZh:
@@ -463,7 +481,7 @@ const showcaseProjects: Array<{
     titleZh: '升降椅像翅膀，讓人生重新起飛',
     summaryZh: '協助脊髓損傷者居家無障礙改造，募款安裝升降椅與輔具。',
     orgKey: 'spinal_fund',
-    heroImageKey: 'project-hero-lift-chair',
+    heroImageKey: projectHeroPlaceholderUrl('Lift chair'),
     fundraisingLicenseZh: '1130855120',
     projectDetailZh:
       '許多脊髓損傷朋友返家後，面臨門檻、浴室與臥房動線障礙，連「回到自己房間」都成奢望。本專案募款用於補助升降椅、無障礙坡道與抓桿等設施，並媒合職能治療建議與施工廠商。\n\n' +
@@ -511,7 +529,7 @@ function extraRows(): Array<{
       out.push({
         ...base,
         organizationNameZh: `示範主辦單位 ${i}`,
-        heroImageKey: `demo-project-hero-${i}`,
+        heroImageKey: projectHeroPlaceholderUrl(`Demo project ${i}`),
         extraThemes: [
           { theme: t0, sortOrder: 0 },
           { theme: t1, sortOrder: 1 },

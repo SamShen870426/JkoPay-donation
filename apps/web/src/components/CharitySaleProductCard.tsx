@@ -1,5 +1,6 @@
 import type { DonationListItem } from '@jkopay/contracts';
 import { Link } from 'react-router-dom';
+import { onDonationImageError } from '../lib/donation-image-fallback.js';
 import { formatCharityPriceLine } from '../lib/format-charity-price.js';
 import { THEME_PRIMARY } from '../constants/theme.js';
 
@@ -33,6 +34,7 @@ export function CharitySaleProductCard({ item }: Props) {
           loading="lazy"
           decoding="async"
           className="h-full w-full object-cover"
+          onError={onDonationImageError}
         />
       </div>
       <div className="flex min-h-[92px] min-w-0 flex-1 flex-col px-2 pb-2.5 pt-2">

@@ -5,6 +5,7 @@ import { DonationApiError } from '../api/donation-api-error.js';
 import { fetchCharityProductDetail } from '../api/donationClient.js';
 import { CHARITY_THEME_LABELS } from '../constants/charity-themes.js';
 import { LAYOUT_NAV_BAR_PX, THEME_PAGE_BG, THEME_PRIMARY } from '../constants/theme.js';
+import { onDonationImageError } from '../lib/donation-image-fallback.js';
 import { formatCharityPriceLine } from '../lib/format-charity-price.js';
 import { patchDonationListUi } from '../lib/donation-list-ui-storage.js';
 import { stripLeadingDashSeparator } from '../lib/product-description-display.js';
@@ -169,6 +170,7 @@ export function CharityProductDetailScreen() {
                       src={detail.organizationLogoUrl}
                       alt=""
                       className="h-full w-full object-cover"
+                      onError={onDonationImageError}
                     />
                   </div>
                   <div className="min-w-0 flex-1 overflow-hidden">

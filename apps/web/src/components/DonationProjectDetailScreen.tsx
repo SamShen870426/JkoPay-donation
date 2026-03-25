@@ -10,6 +10,7 @@ import {
   THEME_PAGE_BG,
   THEME_PRIMARY,
 } from '../constants/theme.js';
+import { onDonationImageError } from '../lib/donation-image-fallback.js';
 import { patchDonationListUi } from '../lib/donation-list-ui-storage.js';
 import { Button } from '../ui/button.js';
 import { DonationSettingsSheet } from './DonationSettingsSheet.js';
@@ -197,6 +198,7 @@ export function DonationProjectDetailScreen() {
                       src={detail.organizationLogoUrl}
                       alt=""
                       className="h-full w-full object-cover"
+                      onError={onDonationImageError}
                     />
                   </div>
                   <div className="min-w-0 flex-1 overflow-hidden">

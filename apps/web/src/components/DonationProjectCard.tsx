@@ -1,6 +1,7 @@
 import type { CharityTheme, DonationListItem } from '@jkopay/contracts';
 import { Link } from 'react-router-dom';
 import { CHARITY_THEME_LABELS } from '../constants/charity-themes.js';
+import { onDonationImageError } from '../lib/donation-image-fallback.js';
 import { THEME_PRIMARY } from '../constants/theme.js';
 
 type Props = { item: DonationListItem };
@@ -41,6 +42,7 @@ export function DonationProjectCard({ item }: Props) {
           loading="lazy"
           decoding="async"
           className="h-full w-full object-cover"
+          onError={onDonationImageError}
         />
       </div>
       <div className="min-w-0 overflow-hidden px-3 pb-3 pt-2">

@@ -150,7 +150,7 @@ describe('fetchCharityOrganizationProfile', () => {
         id: '1',
         name: '團體',
         logoUrl: 'https://x/l.png',
-        bannerUrl: null,
+        bannerUrl: 'https://x/b.png',
         phone: null,
         email: null,
         websiteUrl: null,

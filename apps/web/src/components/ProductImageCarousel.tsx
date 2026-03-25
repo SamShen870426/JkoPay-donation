@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '../lib/cn.js';
+import { onDonationImageError } from '../lib/donation-image-fallback.js';
 
 type Props = {
   urls: string[];
@@ -64,6 +65,7 @@ export function ProductImageCarousel({ urls, initialIndex }: Props) {
                 loading={i === 0 ? 'eager' : 'lazy'}
                 decoding="async"
                 className="h-full w-full object-cover"
+                onError={onDonationImageError}
               />
             </div>
           </div>

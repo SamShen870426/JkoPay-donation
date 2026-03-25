@@ -11,8 +11,8 @@ export const charityOrganizationProfileSchema = z.object({
   id: z.string(),
   name: z.string(),
   logoUrl: z.string(),
-  /** 無自訂背景圖時為 null，前端用純色 */
-  bannerUrl: z.string().nullable(),
+  /** 無自訂背景圖時為預設圖 URL（與列表缺圖同一張，同源 `/donation-demo-logo.png`） */
+  bannerUrl: z.string(),
   phone: z.string().nullable(),
   email: z.string().nullable(),
   websiteUrl: z.string().nullable(),

@@ -15,15 +15,13 @@ type OrgWithThemes = {
 };
 
 export function toCharityOrganizationProfile(org: OrgWithThemes): CharityOrganizationProfile {
-  const bannerKey = org.profileBannerKey?.trim();
-  const bannerUrl =
-    bannerKey != null && bannerKey.length > 0 ? resolveHeroImageUrl(bannerKey) : null;
+  const bannerKey = org.profileBannerKey?.trim() ?? '';
 
   return {
     id: String(org.id),
     name: org.nameZh,
     logoUrl: resolveImageUrl(org.logoKey),
-    bannerUrl,
+    bannerUrl: resolveHeroImageUrl(bannerKey),
     phone: org.phone?.trim() || null,
     email: org.email?.trim() || null,
     websiteUrl: org.websiteUrl?.trim() || null,

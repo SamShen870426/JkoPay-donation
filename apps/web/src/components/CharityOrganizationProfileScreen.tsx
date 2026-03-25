@@ -15,6 +15,7 @@ import {
   THEME_PAGE_BG,
   THEME_PRIMARY,
 } from '../constants/theme.js';
+import { onDonationImageError } from '../lib/donation-image-fallback.js';
 import { Button } from '../ui/button.js';
 import { CharitySaleProductCard } from './CharitySaleProductCard.js';
 import { DonationLoadMoreSkeleton } from './DonationListSkeleton.js';
@@ -88,7 +89,7 @@ export function CharityOrganizationProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [orgName, setOrgName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [bannerUrl, setBannerUrl] = useState('');
   const [phone, setPhone] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [websiteUrl, setWebsiteUrl] = useState<string | null>(null);
@@ -269,13 +270,14 @@ export function CharityOrganizationProfileScreen() {
               className="relative w-full shrink-0 overflow-hidden pb-10 pt-1"
               style={{ backgroundColor: THEME_PRIMARY }}
             >
-              {bannerUrl != null ? (
+              {bannerUrl !== '' ? (
                 <>
                   <img
                     src={bannerUrl}
                     alt=""
                     className="absolute inset-0 h-full w-full object-cover opacity-90"
                     decoding="async"
+                    onError={onDonationImageError}
                   />
                   <div className="absolute inset-0 bg-[#C9191D]/55" aria-hidden />
                 </>
@@ -289,6 +291,7 @@ export function CharityOrganizationProfileScreen() {
                     alt=""
                     className="h-full w-full object-cover"
                     decoding="async"
+                    onError={onDonationImageError}
                   />
                 </div>
                 <h2 className="mt-4 max-w-full text-center text-[18px] font-bold leading-snug text-white drop-shadow-sm">
