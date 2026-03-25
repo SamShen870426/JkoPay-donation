@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import type { CharityTheme, DonationCategory } from '@jkopay/contracts';
+import { donationItemListInclude } from './donation.transformer.js';
 
 export class DonationRepository {
   constructor(private readonly db: PrismaClient) {}
@@ -24,6 +25,17 @@ export class DonationRepository {
               { titleZh: { contains: q } },
               { summaryZh: { contains: q } },
               { organizationNameZh: { contains: q } },
+              {
+                charityProduct: {
+                  is: {
+                    OR: [
+                      { organizationNameZh: { contains: q } },
+                      { descriptionZh: { contains: q } },
+                      { options: { some: { labelZh: { contains: q } } } },
+                    ],
+                  },
+                },
+              },
             ],
           }
         : {}),
@@ -33,11 +45,7 @@ export class DonationRepository {
       where,
       orderBy: { id: 'asc' },
       take: input.take,
-      include: {
-        itemThemes: {
-          orderBy: { sortOrder: 'asc' },
-        },
-      },
+      include: donationItemListInclude,
     });
   }
 }

@@ -13,3 +13,20 @@ export function DonationLoadMoreSkeleton() {
     </DonationCardShell>
   );
 }
+
+/** 義賣雙欄網格：單格骨架（一次請渲染兩格以填滿一列） */
+export function DonationProductLoadMoreSkeleton() {
+  return (
+    <div
+      className="flex min-w-0 flex-col overflow-hidden rounded-[12px] bg-white shadow-sm ring-1 ring-black/5"
+      aria-hidden
+    >
+      <Skeleton shape="rect" className="aspect-square w-full rounded-none" />
+      <div className="flex flex-col gap-2 p-2 pb-3">
+        <Skeleton shape="title" className="h-3.5 w-full" />
+        <Skeleton className="h-3 w-4/5" />
+        <Skeleton className="mt-1 h-3.5 w-1/2" />
+      </div>
+    </div>
+  );
+}

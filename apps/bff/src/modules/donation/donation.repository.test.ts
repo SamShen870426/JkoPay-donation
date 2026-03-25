@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
 import { DonationRepository } from './donation.repository.js';
+import { donationItemListInclude } from './donation.transformer.js';
 
 function createDbMock() {
   const findMany = vi.fn().mockResolvedValue([]);
@@ -32,15 +33,22 @@ describe('DonationRepository.findByCategoryKeyset', () => {
           { titleZh: { contains: '基金會' } },
           { summaryZh: { contains: '基金會' } },
           { organizationNameZh: { contains: '基金會' } },
+          {
+            charityProduct: {
+              is: {
+                OR: [
+                  { organizationNameZh: { contains: '基金會' } },
+                  { descriptionZh: { contains: '基金會' } },
+                  { options: { some: { labelZh: { contains: '基金會' } } } },
+                ],
+              },
+            },
+          },
         ],
       },
       orderBy: { id: 'asc' },
       take: 21,
-      include: {
-        itemThemes: {
-          orderBy: { sortOrder: 'asc' },
-        },
-      },
+      include: donationItemListInclude,
     });
   });
 

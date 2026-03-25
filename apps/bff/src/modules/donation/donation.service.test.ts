@@ -25,6 +25,7 @@ const prismaRow = (id: number): DonationItemListRow => ({
   organizationNameZh: null,
   heroImageKey: null,
   itemThemes: [{ donationItemId: id, theme: 'animal_protection', sortOrder: 0 }],
+  charityProduct: null,
 });
 
 describe('DonationService.list', () => {

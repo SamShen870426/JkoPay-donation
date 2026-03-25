@@ -53,6 +53,16 @@ export const donationListItemSchema = z.object({
    * 團體／商品列不帶此欄。
    */
   themes: z.array(charityThemeSchema).optional(),
+  /**
+   * 義賣商品列表（category=products）：後端有 `CharityProduct` 時一併輸出。
+   * 價格區間由所有選項單價的 min／max 推導；相等時前端顯示單一價格。
+   */
+  productOrganizationName: z.string().optional(),
+  productCoverImageUrl: z.string().optional(),
+  /** 整數金額（TWD 為元） */
+  productPriceMin: z.number().int().nonnegative().optional(),
+  productPriceMax: z.number().int().nonnegative().optional(),
+  productCurrency: z.string().optional(),
 });
 
 export type DonationListItem = z.infer<typeof donationListItemSchema>;

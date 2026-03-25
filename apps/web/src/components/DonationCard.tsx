@@ -1,8 +1,20 @@
 import type { DonationListItem } from '@jkopay/contracts';
+import { CharitySaleProductCard } from './CharitySaleProductCard.js';
 import { DonationCardShell } from '../ui/card.js';
 import { DonationProjectCard } from './DonationProjectCard.js';
 
 type Props = { item: DonationListItem };
+
+function isCharitySaleProductGridCard(item: DonationListItem): boolean {
+  if (item.category !== 'products') return false;
+  return (
+    item.productCoverImageUrl != null &&
+    item.productOrganizationName != null &&
+    item.productPriceMin != null &&
+    item.productPriceMax != null &&
+    item.productCurrency != null
+  );
+}
 
 function isProjectCardLayout(item: DonationListItem): boolean {
   if (item.category !== 'projects') return false;
@@ -13,8 +25,11 @@ function isProjectCardLayout(item: DonationListItem): boolean {
   );
 }
 
-/** 公益團體／商品：橫式小圖 + 標題摘要；捐款專案：大圖 + 團體 + 標籤列 */
+/** 公益團體／舊式商品列：橫式小圖 + 標題摘要；專案：大圖卡；義賣（有擴充資料）：雙欄商品卡 */
 export function DonationCard({ item }: Props) {
+  if (isCharitySaleProductGridCard(item)) {
+    return <CharitySaleProductCard item={item} />;
+  }
   if (isProjectCardLayout(item)) {
     return <DonationProjectCard item={item} />;
   }

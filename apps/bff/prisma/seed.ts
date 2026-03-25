@@ -38,6 +38,52 @@ async function createItem(data: {
   });
 }
 
+type ProductImageSeed = { imageKey: string; sortOrder: number; isPrimary: boolean };
+type ProductOptionSeed = {
+  labelZh: string;
+  unitPriceAmount: number;
+  stockQuantity: number;
+  sortOrder: number;
+};
+
+async function createProductItem(data: {
+  titleZh: string;
+  summaryZh: string;
+  logoKey: string;
+  themes: ThemeLink[];
+  organizationNameZh: string;
+  descriptionZh: string;
+  currency?: string;
+  shippingFeeAmount?: number;
+  images: ProductImageSeed[];
+  options: ProductOptionSeed[];
+}) {
+  await prisma.donationItem.create({
+    data: {
+      category: 'products',
+      titleZh: data.titleZh,
+      summaryZh: data.summaryZh,
+      logoKey: data.logoKey,
+      itemThemes: {
+        create: data.themes.map((t) => ({
+          theme: t.theme,
+          sortOrder: t.sortOrder,
+        })),
+      },
+      charityProduct: {
+        create: {
+          organizationNameZh: data.organizationNameZh,
+          descriptionZh: data.descriptionZh,
+          currency: data.currency ?? 'TWD',
+          shippingFeeAmount: data.shippingFeeAmount ?? 0,
+          images: { create: data.images },
+          options: { create: data.options },
+        },
+      },
+    },
+  });
+}
+
 const groupRows: Array<{
   category: DonationCategory;
   theme: CharityTheme;
@@ -68,19 +114,79 @@ const groupRows: Array<{
   },
 ];
 
-const productRows: Array<{
-  category: DonationCategory;
-  theme: CharityTheme;
+/** 與稿相近：多圖、多選項（價格區間／單價）、運費供後續結帳用 */
+const showcaseProducts: Array<{
   titleZh: string;
   summaryZh: string;
-  logoKey: string;
+  organizationNameZh: string;
+  descriptionZh: string;
+  themes: ThemeLink[];
+  shippingFeeAmount: number;
+  images: ProductImageSeed[];
+  options: ProductOptionSeed[];
 }> = [
   {
-    category: 'products',
-    theme: 'child_youth_care',
-    titleZh: '愛心義賣帆布袋',
-    summaryZh: '義賣所得全數捐贈兒童福利團體。',
-    logoKey: DEMO_LOGO_KEY,
+    titleZh: '/貓貓花色全包！/ 貓貓定律 驚喜摺疊萬用卡',
+    summaryZh: '貓貓定律 驚喜摺疊萬用卡',
+    organizationNameZh: '社團法人貓咪也瘋狂公益協會',
+    descriptionZh:
+      '-------\n因協會人力有限，預計將於購買後7-14天內寄達。請務必留下正確地址、姓名、聯絡電話，以利寄送喔！',
+    themes: [{ theme: 'animal_protection', sortOrder: 0 }],
+    shippingFeeAmount: 100,
+    images: [
+      { imageKey: 'product-cat-cards-1', sortOrder: 0, isPrimary: true },
+      { imageKey: 'product-cat-cards-2', sortOrder: 1, isPrimary: false },
+    ],
+    options: [
+      { labelZh: '1張', unitPriceAmount: 250, stockQuantity: 100, sortOrder: 0 },
+      { labelZh: '2張', unitPriceAmount: 450, stockQuantity: 80, sortOrder: 1 },
+    ],
+  },
+  {
+    titleZh: '【貓頭鷹系列】手拿隨身小風扇',
+    summaryZh: '夏日外出涼感小物，義賣所得支持公益。',
+    organizationNameZh: '財團法人台灣省私立台灣兒童暨家庭扶助基金會',
+    descriptionZh: '輕巧隨身風扇，內建電池款。售完為止。',
+    themes: [{ theme: 'child_youth_care', sortOrder: 0 }],
+    shippingFeeAmount: 60,
+    images: [{ imageKey: 'product-owl-fan', sortOrder: 0, isPrimary: true }],
+    options: [{ labelZh: '單入', unitPriceAmount: 100, stockQuantity: 200, sortOrder: 0 }],
+  },
+  {
+    titleZh: '/新登場，少量現貨/ BOXKITTY 山水貓抓板',
+    summaryZh: '居家貓抓板，少量現貨。',
+    organizationNameZh: '社團法人貓咪也瘋狂公益協會',
+    descriptionZh: '大型紙製貓抓板，組裝簡單。依訂單順序出貨。',
+    themes: [{ theme: 'animal_protection', sortOrder: 0 }],
+    shippingFeeAmount: 120,
+    images: [{ imageKey: 'product-boxkitty', sortOrder: 0, isPrimary: true }],
+    options: [{ labelZh: '單組', unitPriceAmount: 1050, stockQuantity: 15, sortOrder: 0 }],
+  },
+  {
+    titleZh: '寬燭 | 馬利祿達摩擴香石-白',
+    summaryZh: '手工擴香石，室內香氛小物。',
+    organizationNameZh: '財團法人台灣紅絲帶基金會',
+    descriptionZh: '附精油使用說明。圖片僅供參考，以實物為準。',
+    themes: [{ theme: 'special_medical', sortOrder: 0 }],
+    shippingFeeAmount: 80,
+    images: [
+      { imageKey: 'product-diffuser-1', sortOrder: 0, isPrimary: false },
+      { imageKey: 'product-diffuser-2', sortOrder: 1, isPrimary: true },
+    ],
+    options: [{ labelZh: '單入', unitPriceAmount: 1600, stockQuantity: 40, sortOrder: 0 }],
+  },
+  {
+    titleZh: '木杯墊+木湯匙 公益組合',
+    summaryZh: '手工木作小物，兩種組合可選。',
+    organizationNameZh: '示範林業永續協會',
+    descriptionZh: '天然木材，每組附簡易保養說明。',
+    themes: [{ theme: 'environmental_protection', sortOrder: 0 }],
+    shippingFeeAmount: 100,
+    images: [{ imageKey: 'product-wood-set', sortOrder: 0, isPrimary: true }],
+    options: [
+      { labelZh: '木杯墊+木湯匙 各一', unitPriceAmount: 450, stockQuantity: 20, sortOrder: 0 },
+      { labelZh: '木杯墊+木湯匙 各二對組', unitPriceAmount: 850, stockQuantity: 1, sortOrder: 1 },
+    ],
   },
 ];
 
@@ -125,6 +231,7 @@ function extraRows(): Array<{
   organizationNameZh?: string;
   heroImageKey?: string;
   extraThemes?: ThemeLink[];
+  extraRowIndex: number;
 }> {
   const out: ReturnType<typeof extraRows> = [];
   const categories: DonationCategory[] = ['groups', 'projects', 'products'];
@@ -138,6 +245,7 @@ function extraRows(): Array<{
       titleZh: `示範${category === 'groups' ? '團體' : category === 'projects' ? '專案' : '商品'} ${i}`,
       summaryZh: `自動產生測試資料 #${i}，方便驗證無限滾動與分類過濾。`,
       logoKey: DEMO_LOGO_KEY,
+      extraRowIndex: i,
     };
     if (category === 'projects') {
       const t0 = themes[i % themes.length]!;
@@ -171,13 +279,17 @@ async function main() {
     });
   }
 
-  for (const r of productRows) {
-    await createItem({
-      category: r.category,
-      titleZh: r.titleZh,
-      summaryZh: r.summaryZh,
-      logoKey: r.logoKey,
-      themes: [{ theme: r.theme, sortOrder: 0 }],
+  for (const p of showcaseProducts) {
+    await createProductItem({
+      titleZh: p.titleZh,
+      summaryZh: p.summaryZh,
+      logoKey: DEMO_LOGO_KEY,
+      themes: p.themes,
+      organizationNameZh: p.organizationNameZh,
+      descriptionZh: p.descriptionZh,
+      shippingFeeAmount: p.shippingFeeAmount,
+      images: p.images,
+      options: p.options,
     });
   }
 
@@ -203,6 +315,31 @@ async function main() {
         organizationNameZh: r.organizationNameZh,
         heroImageKey: r.heroImageKey,
         themes: r.extraThemes,
+      });
+    } else if (r.category === 'products') {
+      const price = 100 + (r.extraRowIndex % 15) * 50;
+      await createProductItem({
+        titleZh: r.titleZh,
+        summaryZh: r.summaryZh,
+        logoKey: r.logoKey,
+        themes: [{ theme: r.theme, sortOrder: 0 }],
+        organizationNameZh: `示範關聯公益團體（#${r.extraRowIndex}）`,
+        descriptionZh: `${r.summaryZh}\n-------\n此為大量測試資料自動產生之商品說明。`,
+        images: [
+          {
+            imageKey: `auto-product-cover-${r.extraRowIndex}`,
+            sortOrder: 0,
+            isPrimary: true,
+          },
+        ],
+        options: [
+          {
+            labelZh: '標準',
+            unitPriceAmount: price,
+            stockQuantity: 50,
+            sortOrder: 0,
+          },
+        ],
       });
     } else {
       await createItem({

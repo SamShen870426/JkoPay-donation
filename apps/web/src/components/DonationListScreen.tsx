@@ -20,7 +20,10 @@ import { DonationListFooterCap } from './DonationListFooterCap.js';
 import { CHARITY_THEME_LABELS } from '../constants/charity-themes.js';
 import { CharityThemeFilterSheet } from './CharityThemeFilterSheet.js';
 import { DonationListInitialLoading } from './DonationListInitialLoading.js';
-import { DonationLoadMoreSkeleton } from './DonationListSkeleton.js';
+import {
+  DonationLoadMoreSkeleton,
+  DonationProductLoadMoreSkeleton,
+} from './DonationListSkeleton.js';
 import { MobileStatusBar } from './MobileStatusBar.js';
 import { SearchBar } from './SearchBar.js';
 import { TabBar } from './TabBar.js';
@@ -194,7 +197,7 @@ export function DonationListScreen() {
         {!error && !showCenteredListLoading && items.length > 0 ? (
           <>
             <div
-              className="flex flex-col gap-3 pb-8"
+              className={category === 'products' ? 'grid grid-cols-2 gap-2 pb-8' : 'flex flex-col gap-3 pb-8'}
               style={{
                 paddingLeft: CARD_LIST_MARGIN_X_PX,
                 paddingRight: CARD_LIST_MARGIN_X_PX,
@@ -206,8 +209,21 @@ export function DonationListScreen() {
               {items.map((item) => (
                 <DonationCard key={item.id} item={item} />
               ))}
-              {hasMore && isFetchingNextPage ? <DonationLoadMoreSkeleton /> : null}
-              {!hasMore && !isFetchingNextPage ? <DonationListFooterCap /> : null}
+              {hasMore && isFetchingNextPage ? (
+                category === 'products' ? (
+                  <>
+                    <DonationProductLoadMoreSkeleton />
+                    <DonationProductLoadMoreSkeleton />
+                  </>
+                ) : (
+                  <DonationLoadMoreSkeleton />
+                )
+              ) : null}
+              {!hasMore && !isFetchingNextPage ? (
+                <div className={category === 'products' ? 'col-span-2' : undefined}>
+                  <DonationListFooterCap />
+                </div>
+              ) : null}
             </div>
           </>
         ) : null}

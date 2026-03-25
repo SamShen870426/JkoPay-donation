@@ -57,8 +57,57 @@ model DonationItem {
   heroImageKey       String?          @map("hero_image_key") @db.VarChar(512)
   createdAt          DateTime         @default(now()) @map("created_at")
 
-  itemThemes DonationItemTheme[]
+  itemThemes     DonationItemTheme[]
+  /// 義賣商品擴充（僅 category=products 時使用，1:1）
+  charityProduct CharityProduct?
 
   @@index([category, id])
   @@map("donation_items")
+}
+
+/// 義賣商品：圖片／選項／運費等（列表價格區間由 options 的單價 min/max 推導）
+model CharityProduct {
+  id                 Int    @id @default(autoincrement())
+  donationItemId     Int    @unique @map("donation_item_id")
+  /// 列表與詳情：所屬公益團體名稱
+  organizationNameZh String @map("organization_name_zh") @db.VarChar(255)
+  /// 商品說明（詳情頁用）
+  descriptionZh      String @map("description_zh") @db.Text
+  currency             String @default("TWD") @db.VarChar(8)
+  /// 運費（與單價同單位：整數，TWD 為元）
+  shippingFeeAmount  Int    @default(0) @map("shipping_fee_amount")
+
+  donationItem DonationItem            @relation(fields: [donationItemId], references: [id], onDelete: Cascade)
+  images       CharityProductImage[]
+  options      CharityProductOption[]
+
+  @@map("charity_products")
+}
+
+model CharityProductImage {
+  id        Int     @id @default(autoincrement())
+  productId Int     @map("product_id")
+  imageKey  String  @map("image_key") @db.VarChar(512)
+  sortOrder Int     @default(0) @map("sort_order")
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  product CharityProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+  @@map("charity_product_images")
+}
+
+model CharityProductOption {
+  id               Int    @id @default(autoincrement())
+  productId        Int    @map("product_id")
+  labelZh          String @map("label_zh") @db.VarChar(255)
+  /// 單價（TWD 為元，整數）
+  unitPriceAmount  Int    @map("unit_price_amount")
+  stockQuantity    Int    @map("stock_quantity")
+  sortOrder        Int    @default(0) @map("sort_order")
+
+  product CharityProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+  @@map("charity_product_options")
 }

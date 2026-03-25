@@ -12,6 +12,7 @@ const base: DonationItemListRow = {
   organizationNameZh: null,
   heroImageKey: null,
   itemThemes: [{ donationItemId: 1, theme: 'animal_protection', sortOrder: 0 }],
+  charityProduct: null,
 };
 
 describe('toDonationListItem', () => {
@@ -75,5 +76,58 @@ describe('toDonationListItem', () => {
     expect(dto.organizationName).toBe('某某基金會');
     expect(dto.heroImageUrl).toBe('https://picsum.photos/seed/hero-key/800/480');
     expect(dto.themes).toEqual(['public_issues', 'community_development']);
+  });
+
+  it('義賣商品列輸出 product* 欄位（首圖、團體、價格區間）', () => {
+    delete process.env.ASSET_CDN_BASE;
+    const row: DonationItemListRow = {
+      ...base,
+      category: 'products',
+      titleZh: '貓貓萬用卡',
+      itemThemes: [{ donationItemId: 1, theme: 'animal_protection', sortOrder: 0 }],
+      charityProduct: {
+        id: 1,
+        donationItemId: 1,
+        organizationNameZh: '社團法人貓咪也瘋狂公益協會',
+        descriptionZh: '說明',
+        currency: 'TWD',
+        shippingFeeAmount: 100,
+        images: [
+          { id: 1, productId: 1, imageKey: 'p-cover', sortOrder: 0, isPrimary: true },
+          { id: 2, productId: 1, imageKey: 'p2', sortOrder: 1, isPrimary: false },
+        ],
+        options: [
+          { id: 1, productId: 1, labelZh: '1張', unitPriceAmount: 250, stockQuantity: 50, sortOrder: 0 },
+          { id: 2, productId: 1, labelZh: '2張', unitPriceAmount: 450, stockQuantity: 30, sortOrder: 1 },
+        ],
+      },
+    };
+    const dto = toDonationListItem(row);
+    expect(dto.productOrganizationName).toBe('社團法人貓咪也瘋狂公益協會');
+    expect(dto.productCoverImageUrl).toBe('https://picsum.photos/seed/p-cover/400/400');
+    expect(dto.productPriceMin).toBe(250);
+    expect(dto.productPriceMax).toBe(450);
+    expect(dto.productCurrency).toBe('TWD');
+  });
+
+  it('義賣商品無選項時不輸出 product*（維持一般列表欄位）', () => {
+    const row: DonationItemListRow = {
+      ...base,
+      category: 'products',
+      itemThemes: [],
+      charityProduct: {
+        id: 1,
+        donationItemId: 1,
+        organizationNameZh: '某團體',
+        descriptionZh: '說明',
+        currency: 'TWD',
+        shippingFeeAmount: 0,
+        images: [{ id: 1, productId: 1, imageKey: 'x', sortOrder: 0, isPrimary: true }],
+        options: [],
+      },
+    };
+    const dto = toDonationListItem(row);
+    expect(dto.productCoverImageUrl).toBeUndefined();
+    expect(dto.productPriceMin).toBeUndefined();
   });
 });
