@@ -1,5 +1,9 @@
 import type { FastifyInstance } from 'fastify';
-import type { CharityProductDetail, DonationListResponse } from '@jkopay/contracts';
+import type {
+  CharityProductDetail,
+  DonationListResponse,
+  DonationProjectDetail,
+} from '@jkopay/contracts';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildDependencies } from '../../di/dependencies.js';
 import { createApp } from '../../app.js';
@@ -8,10 +12,15 @@ import type { DonationService } from './donation.service.js';
 describe('GET /api/v1/donation-items', () => {
   const list = vi.fn();
   const getCharityProductDetail = vi.fn();
+  const getDonationProjectDetail = vi.fn();
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    const donationService = { list, getCharityProductDetail } as unknown as DonationService;
+    const donationService = {
+      list,
+      getCharityProductDetail,
+      getDonationProjectDetail,
+    } as unknown as DonationService;
     app = await createApp(buildDependencies({ donationService }), { logger: false });
   });
 
@@ -101,5 +110,41 @@ describe('GET /api/v1/donation-items', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual(detail);
     expect(getCharityProductDetail).toHaveBeenCalledWith('1');
+  });
+
+  it('GET …/project 呼叫 service 並回傳契約 JSON', async () => {
+    const detail: DonationProjectDetail = {
+      donationItemId: '2',
+      title: '專案標題',
+      subtitle: '摘要',
+      fundraisingLicense: '1141365173',
+      heroImageUrls: ['https://example.com/h.png'],
+      primaryHeroImageIndex: 0,
+      organizationId: '1',
+      organizationName: '團體',
+      organizationLogoUrl: 'https://example.com/l.png',
+      themes: ['animal_protection'],
+      projectDetail: '內文',
+      disclaimer: '聲明',
+      checkout: {
+        paymentKinds: ['recurring_monthly', 'one_time'],
+        billingDays: [6, 16, 26],
+        amountPresets: [
+          { amount: 100, currency: 'TWD' },
+          { amount: 500, currency: 'TWD' },
+        ],
+        allowCustomAmount: true,
+      },
+    };
+    getDonationProjectDetail.mockResolvedValueOnce(detail);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/donation-items/2/project',
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual(detail);
+    expect(getDonationProjectDetail).toHaveBeenCalledWith('2');
   });
 });

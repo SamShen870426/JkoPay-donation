@@ -3,6 +3,7 @@ import {
   charityProductDetailSchema,
   donationListQuerySchema,
   donationListResponseSchema,
+  donationProjectDetailSchema,
 } from '@jkopay/contracts';
 import { AppError } from '../../errors/app-error.js';
 import type { DonationService } from './donation.service.js';
@@ -12,6 +13,7 @@ type CharityProductParams = { Params: { id: string } };
 export type DonationController = {
   list: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
   getCharityProduct: (request: FastifyRequest<CharityProductParams>, reply: FastifyReply) => Promise<void>;
+  getDonationProject: (request: FastifyRequest<CharityProductParams>, reply: FastifyReply) => Promise<void>;
 };
 
 export function createDonationController(service: DonationService): DonationController {
@@ -62,6 +64,25 @@ export function createDonationController(service: DonationService): DonationCont
           'Response validation failed',
           500,
         );
+      }
+
+      return reply.send(out.data);
+    },
+
+    async getDonationProject(request, reply) {
+      let body;
+      try {
+        body = await service.getDonationProjectDetail(request.params.id);
+      } catch (e) {
+        if (e instanceof AppError) throw e;
+        request.log.error(e);
+        throw new AppError('DONATION_PROJECT_DETAIL_FAILED', 'Failed to load donation project', 500);
+      }
+
+      const out = donationProjectDetailSchema.safeParse(body);
+      if (!out.success) {
+        request.log.error(out.error, 'Response contract mismatch');
+        throw new AppError('RESPONSE_CONTRACT_MISMATCH', 'Response validation failed', 500);
       }
 
       return reply.send(out.data);

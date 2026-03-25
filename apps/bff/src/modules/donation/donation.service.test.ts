@@ -8,12 +8,16 @@ import type { DonationItemListRow } from './donation.transformer.js';
 
 function mockRepo(
   impl: Partial<
-    Pick<DonationRepository, 'findByCategoryKeyset' | 'findByIdWithListInclude'>
+    Pick<
+      DonationRepository,
+      'findByCategoryKeyset' | 'findByIdWithListInclude' | 'findByIdForProjectDetail'
+    >
   > = {},
 ): DonationRepository {
   return {
     findByCategoryKeyset: vi.fn(),
     findByIdWithListInclude: vi.fn(),
+    findByIdForProjectDetail: vi.fn(),
     ...impl,
   } as unknown as DonationRepository;
 }
@@ -29,6 +33,9 @@ const prismaRow = (id: number): DonationItemListRow => ({
   organization: null,
   organizationNameZh: null,
   heroImageKey: null,
+  fundraisingLicenseZh: null,
+  projectDetailZh: null,
+  projectDisclaimerZh: null,
   itemThemes: [{ donationItemId: id, theme: 'animal_protection', sortOrder: 0 }],
   charityProduct: null,
 });
@@ -138,6 +145,15 @@ describe('DonationService.list', () => {
     const service = new DonationService(mockRepo({ findByIdWithListInclude }));
 
     await expect(service.getCharityProductDetail('1')).rejects.toSatisfy(
+      (e: unknown) => e instanceof AppError && e.code === 'NOT_FOUND',
+    );
+  });
+
+  it('getDonationProjectDetail：非專案列為 NOT_FOUND', async () => {
+    const findByIdForProjectDetail = vi.fn().mockResolvedValue(prismaRow(1));
+    const service = new DonationService(mockRepo({ findByIdForProjectDetail }));
+
+    await expect(service.getDonationProjectDetail('1')).rejects.toSatisfy(
       (e: unknown) => e instanceof AppError && e.code === 'NOT_FOUND',
     );
   });

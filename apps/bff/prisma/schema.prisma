@@ -13,6 +13,12 @@ enum DonationCategory {
   products
 }
 
+/// 捐款專案結帳可選類型（主檔為 enum；各專案以關聯列決定開放哪些）
+enum ProjectDonationPaymentKind {
+  recurring_monthly
+  one_time
+}
+
 enum CharityTheme {
   child_youth_care
   animal_protection
@@ -79,6 +85,56 @@ model DonationItemTheme {
   @@map("donation_item_themes")
 }
 
+/// 捐款專案詳情頂部輪播圖
+model DonationProjectHeroImage {
+  id             Int    @id @default(autoincrement())
+  donationItemId Int    @map("donation_item_id")
+  imageKey       String @map("image_key") @db.VarChar(512)
+  sortOrder      Int    @default(0) @map("sort_order")
+  isPrimary      Boolean @default(false) @map("is_primary")
+
+  donationItem DonationItem @relation(fields: [donationItemId], references: [id], onDelete: Cascade)
+
+  @@index([donationItemId, sortOrder])
+  @@map("donation_project_hero_images")
+}
+
+/// 捐款專案可選的付款類型（列存在即 true）
+model DonationItemProjectPaymentOption {
+  donationItemId Int                      @map("donation_item_id")
+  kind           ProjectDonationPaymentKind
+
+  donationItem DonationItem @relation(fields: [donationItemId], references: [id], onDelete: Cascade)
+
+  @@id([donationItemId, kind])
+  @@map("donation_item_project_payment_options")
+}
+
+model DonationItemBillingDay {
+  id             Int @id @default(autoincrement())
+  donationItemId Int @map("donation_item_id")
+  dayOfMonth     Int @map("day_of_month")
+  sortOrder      Int @default(0) @map("sort_order")
+
+  donationItem DonationItem @relation(fields: [donationItemId], references: [id], onDelete: Cascade)
+
+  @@index([donationItemId, sortOrder])
+  @@map("donation_item_billing_days")
+}
+
+model DonationItemAmountPreset {
+  id             Int    @id @default(autoincrement())
+  donationItemId Int    @map("donation_item_id")
+  amount         Int
+  currency       String @default("TWD") @db.VarChar(8)
+  sortOrder      Int    @default(0) @map("sort_order")
+
+  donationItem DonationItem @relation(fields: [donationItemId], references: [id], onDelete: Cascade)
+
+  @@index([donationItemId, sortOrder])
+  @@map("donation_item_amount_presets")
+}
+
 model DonationItem {
   id                 Int              @id @default(autoincrement())
   category           DonationCategory
@@ -89,6 +145,12 @@ model DonationItem {
   organizationNameZh String?          @map("organization_name_zh") @db.VarChar(255)
   /// 捐款專案卡：頂部大圖（與 logo 分離）
   heroImageKey       String?          @map("hero_image_key") @db.VarChar(512)
+  /// 勸募／立案核准字號（專案詳情灰字列）
+  fundraisingLicenseZh String?        @map("fundraising_license_zh") @db.VarChar(64)
+  /// 專案詳情內文（長文）
+  projectDetailZh    String?          @map("project_detail_zh") @db.Text
+  /// 專案頁底部淺灰聲明
+  projectDisclaimerZh String?        @map("project_disclaimer_zh") @db.Text
   /// 綁定公益團體主檔。原則：每個 CharityOrganization 應至少有一筆 category=groups 列且帶此欄，列表與關鍵字搜尋才會命中團名；義賣／專案列亦應與主檔一致。
   organizationId     Int?             @map("organization_id")
   createdAt          DateTime         @default(now()) @map("created_at")
@@ -97,6 +159,14 @@ model DonationItem {
   itemThemes     DonationItemTheme[]
   /// 義賣商品擴充（僅 category=products 時使用，1:1）
   charityProduct CharityProduct?
+  /// 捐款專案：輪播大圖（可空，詳情 API 可退回 heroImageKey）
+  projectHeroImages DonationProjectHeroImage[]
+  /// 捐款專案：開放的付款類型（列存在即開放）
+  projectPaymentOptions DonationItemProjectPaymentOption[]
+  /// 捐款專案：定期扣款可選日（每月幾號）
+  billingDays    DonationItemBillingDay[]
+  /// 捐款專案：建議金額
+  amountPresets  DonationItemAmountPreset[]
 
   @@index([category, id])
   @@index([organizationId, category, id])

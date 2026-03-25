@@ -28,6 +28,9 @@ const base: DonationItemListRow = {
   organization: null,
   organizationNameZh: null,
   heroImageKey: null,
+  fundraisingLicenseZh: null,
+  projectDetailZh: null,
+  projectDisclaimerZh: null,
   itemThemes: [{ donationItemId: 1, theme: 'animal_protection', sortOrder: 0 }],
   charityProduct: null,
 };

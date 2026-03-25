@@ -4,9 +4,11 @@ import {
   buildCharityOrganizationProjectsUrl,
   buildCharityProductDetailUrl,
   buildDonationItemsListUrl,
+  buildDonationProjectDetailUrl,
   fetchCharityOrganizationProfile,
   fetchCharityProductDetail,
   fetchDonationPage,
+  fetchDonationProjectDetail,
 } from './donationClient.js';
 
 describe('buildDonationItemsListUrl', () => {
@@ -39,6 +41,18 @@ describe('buildDonationItemsListUrl', () => {
       // @ts-expect-error 刻意傳入非法 category 驗證 Zod
       buildDonationItemsListUrl({ category: 'oops', q: '' }, ''),
     ).toThrow();
+  });
+});
+
+describe('buildDonationProjectDetailUrl', () => {
+  it('合法 id 組出路徑', () => {
+    expect(buildDonationProjectDetailUrl('9', 'http://bff.test')).toBe(
+      'http://bff.test/api/v1/donation-items/9/project',
+    );
+  });
+
+  it('非法 id 時 Zod 丟錯', () => {
+    expect(() => buildDonationProjectDetailUrl('x', '')).toThrow();
   });
 });
 
@@ -159,6 +173,49 @@ describe('fetchCharityOrganizationProfile', () => {
     const out = await fetchCharityOrganizationProfile({ organizationId: '1' });
     expect(out).toEqual(body);
     expect(fetch).toHaveBeenCalledWith('http://bff.test/api/v1/charity-organizations/1', {
+      signal: undefined,
+    });
+  });
+});
+
+describe('fetchDonationProjectDetail', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('200 時 parse 成功', async () => {
+    const body = {
+      donationItemId: '3',
+      title: 'T',
+      subtitle: 'S',
+      fundraisingLicense: '114',
+      heroImageUrls: ['https://x/h.png'],
+      primaryHeroImageIndex: 0,
+      organizationId: '1',
+      organizationName: 'O',
+      organizationLogoUrl: 'https://x/l.png',
+      themes: ['animal_protection'],
+      projectDetail: '內文',
+      disclaimer: '聲明',
+      checkout: {
+        paymentKinds: ['recurring_monthly', 'one_time'],
+        billingDays: [6, 16, 26],
+        amountPresets: [{ amount: 100, currency: 'TWD' }],
+        allowCustomAmount: true,
+      },
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify(body),
+      }),
+    );
+
+    const out = await fetchDonationProjectDetail({ id: '3' });
+    expect(out).toEqual(body);
+    expect(fetch).toHaveBeenCalledWith('http://bff.test/api/v1/donation-items/3/project', {
       signal: undefined,
     });
   });

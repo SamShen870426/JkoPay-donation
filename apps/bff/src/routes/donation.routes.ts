@@ -12,4 +12,5 @@ export async function registerDonationRoutes(
     '/api/v1/donation-items/:id/charity-product',
     donationController.getCharityProduct,
   );
+  app.get('/api/v1/donation-items/:id/project', donationController.getDonationProject);
 }

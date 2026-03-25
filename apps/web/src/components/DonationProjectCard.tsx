@@ -1,4 +1,5 @@
 import type { CharityTheme, DonationListItem } from '@jkopay/contracts';
+import { Link } from 'react-router-dom';
 import { CHARITY_THEME_LABELS } from '../constants/charity-themes.js';
 import { THEME_PRIMARY } from '../constants/theme.js';
 
@@ -31,7 +32,7 @@ export function DonationProjectCard({ item }: Props) {
   const labels =
     item.themes?.map((slug) => CHARITY_THEME_LABELS[slug as CharityTheme]) ?? [];
 
-  return (
+  const card = (
     <article className="w-full shrink-0 overflow-hidden rounded-[12px] bg-white shadow-sm ring-1 ring-black/5">
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-neutral-100">
         <img
@@ -70,4 +71,17 @@ export function DonationProjectCard({ item }: Props) {
       </div>
     </article>
   );
+
+  if (item.category === 'projects') {
+    return (
+      <Link
+        to={`/projects/${item.id}`}
+        className="block w-full min-w-0 rounded-[12px] outline-none ring-inset focus-visible:ring-2 focus-visible:ring-[#C9191D]/40"
+      >
+        {card}
+      </Link>
+    );
+  }
+
+  return card;
 }

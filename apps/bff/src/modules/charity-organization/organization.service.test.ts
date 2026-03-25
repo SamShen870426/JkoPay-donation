@@ -48,6 +48,9 @@ const prismaRow = (id: number): DonationItemListRow => ({
   organization: mockOrg,
   organizationNameZh: '測試團體',
   heroImageKey: '/hero.png',
+  fundraisingLicenseZh: null,
+  projectDetailZh: null,
+  projectDisclaimerZh: null,
   itemThemes: [{ donationItemId: id, theme: 'animal_protection', sortOrder: 0 }],
   charityProduct: null,
 });

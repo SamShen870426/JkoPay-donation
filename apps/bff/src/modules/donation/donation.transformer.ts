@@ -1,9 +1,10 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma, ProjectDonationPaymentKind } from '@prisma/client';
 import type {
   CharityProductDetail,
   CharityTheme,
   DonationCategory,
   DonationListItem,
+  DonationProjectDetail,
 } from '@jkopay/contracts';
 
 export const donationItemListInclude = {
@@ -22,6 +23,19 @@ export const donationItemListInclude = {
 
 export type DonationItemListRow = Prisma.DonationItemGetPayload<{
   include: typeof donationItemListInclude;
+}>;
+
+export const donationItemProjectDetailInclude = {
+  itemThemes: { orderBy: { sortOrder: 'asc' as const } },
+  organization: true,
+  projectHeroImages: { orderBy: { sortOrder: 'asc' as const } },
+  projectPaymentOptions: true,
+  billingDays: { orderBy: { sortOrder: 'asc' as const } },
+  amountPresets: { orderBy: { sortOrder: 'asc' as const } },
+} satisfies Prisma.DonationItemInclude;
+
+export type DonationItemProjectDetailRow = Prisma.DonationItemGetPayload<{
+  include: typeof donationItemProjectDetailInclude;
 }>;
 
 export function resolveImageUrl(logoKey: string): string {
@@ -185,5 +199,79 @@ export function toCharityProductDetail(row: DonationItemListRow): CharityProduct
     themes,
     description: cp.descriptionZh,
     options,
+  };
+}
+
+const DEFAULT_PROJECT_PAYMENT_KINDS: ProjectDonationPaymentKind[] = [
+  'recurring_monthly',
+  'one_time',
+];
+
+export function toDonationProjectDetail(row: DonationItemProjectDetailRow): DonationProjectDetail | null {
+  if (row.category !== 'projects') return null;
+
+  const sortedHero = [...row.projectHeroImages].sort((a, b) => a.sortOrder - b.sortOrder);
+  let heroImageUrls: string[];
+  let primaryHeroImageIndex: number;
+  if (sortedHero.length > 0) {
+    heroImageUrls = sortedHero.map((im) => resolveHeroImageUrl(im.imageKey));
+    const p = sortedHero.findIndex((im) => im.isPrimary);
+    primaryHeroImageIndex = p >= 0 ? p : 0;
+  } else {
+    const key = row.heroImageKey?.trim();
+    if (key == null || key.length === 0) return null;
+    heroImageUrls = [resolveHeroImageUrl(key)];
+    primaryHeroImageIndex = 0;
+  }
+
+  const org = row.organization;
+  const organizationName =
+    org?.nameZh?.trim() || row.organizationNameZh?.trim() || '公益團體';
+  const organizationLogoUrl =
+    org != null ? resolveImageUrl(org.logoKey) : resolveImageUrl(row.logoKey);
+  const organizationId = row.organizationId != null ? String(row.organizationId) : null;
+
+  const themes: CharityTheme[] = row.itemThemes.map((it) => it.theme as CharityTheme);
+
+  const kindsFromDb = row.projectPaymentOptions.map((o) => o.kind);
+  const paymentKinds =
+    kindsFromDb.length > 0 ? kindsFromDb : [...DEFAULT_PROJECT_PAYMENT_KINDS];
+
+  const billingSorted = [...row.billingDays].sort((a, b) => a.sortOrder - b.sortOrder);
+  const billingDays =
+    billingSorted.length > 0 ? billingSorted.map((d) => d.dayOfMonth) : [6, 16, 26];
+
+  const presetsSorted = [...row.amountPresets].sort((a, b) => a.sortOrder - b.sortOrder);
+  const amountPresets =
+    presetsSorted.length > 0
+      ? presetsSorted.map((p) => ({
+          amount: p.amount,
+          currency: p.currency.trim() || 'TWD',
+        }))
+      : [
+          { amount: 100, currency: 'TWD' },
+          { amount: 500, currency: 'TWD' },
+          { amount: 1000, currency: 'TWD' },
+        ];
+
+  return {
+    donationItemId: String(row.id),
+    title: row.titleZh,
+    subtitle: row.summaryZh,
+    fundraisingLicense: row.fundraisingLicenseZh?.trim() || null,
+    heroImageUrls,
+    primaryHeroImageIndex,
+    organizationId,
+    organizationName,
+    organizationLogoUrl,
+    themes,
+    projectDetail: row.projectDetailZh?.trim() || row.summaryZh,
+    disclaimer: row.projectDisclaimerZh?.trim() || null,
+    checkout: {
+      paymentKinds,
+      billingDays,
+      amountPresets,
+      allowCustomAmount: true,
+    },
   };
 }

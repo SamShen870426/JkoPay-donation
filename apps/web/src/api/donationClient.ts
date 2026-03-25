@@ -6,12 +6,14 @@ import {
   donationItemIdParamSchema,
   donationListQuerySchema,
   donationListResponseSchema,
+  donationProjectDetailSchema,
   type CharityOrganizationProfileResponse,
   type CharityProductDetail,
   type CharityTheme,
   type DonationCategory,
   type DonationListItem,
   type DonationListResponse,
+  type DonationProjectDetail,
 } from '@jkopay/contracts';
 import { throwDonationErrorFromBody } from './donation-api-error.js';
 
@@ -54,6 +56,14 @@ export function buildCharityProductDetailUrl(
   return `${apiBase}/api/v1/donation-items/${encodeURIComponent(id)}/charity-product`;
 }
 
+export function buildDonationProjectDetailUrl(
+  donationItemId: string,
+  apiBase: string = import.meta.env.VITE_API_BASE ?? '',
+): string {
+  const id = donationItemIdParamSchema.parse(donationItemId);
+  return `${apiBase}/api/v1/donation-items/${encodeURIComponent(id)}/project`;
+}
+
 export async function fetchCharityProductDetail(input: {
   id: string;
   signal?: AbortSignal;
@@ -71,6 +81,25 @@ export async function fetchCharityProductDetail(input: {
     throw new Error('Invalid JSON from donation API');
   }
   return charityProductDetailSchema.parse(json);
+}
+
+export async function fetchDonationProjectDetail(input: {
+  id: string;
+  signal?: AbortSignal;
+}): Promise<DonationProjectDetail> {
+  const url = buildDonationProjectDetailUrl(input.id);
+  const res = await fetch(url, { signal: input.signal });
+  const text = await res.text();
+  if (!res.ok) {
+    throwDonationErrorFromBody(res, text);
+  }
+  let json: unknown;
+  try {
+    json = JSON.parse(text) as unknown;
+  } catch {
+    throw new Error('Invalid JSON from donation API');
+  }
+  return donationProjectDetailSchema.parse(json);
 }
 
 export async function fetchDonationPage(input: {
@@ -162,4 +191,9 @@ export async function fetchCharityOrganizationProjectsPage(input: {
   return donationListResponseSchema.parse(json);
 }
 
-export type { CharityOrganizationProfileResponse, CharityProductDetail, DonationListItem };
+export type {
+  CharityOrganizationProfileResponse,
+  CharityProductDetail,
+  DonationListItem,
+  DonationProjectDetail,
+};

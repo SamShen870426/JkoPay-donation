@@ -2,6 +2,7 @@ import {
   PrismaClient,
   DonationCategory,
   CharityTheme,
+  ProjectDonationPaymentKind,
 } from '@prisma/client';
 import { CHARITY_THEME_VALUES } from '@jkopay/contracts';
 
@@ -214,6 +215,86 @@ async function createItem(data: {
   });
 }
 
+const DEFAULT_PROJECT_PAYMENT_KINDS: ProjectDonationPaymentKind[] = [
+  'recurring_monthly',
+  'one_time',
+];
+const DEFAULT_BILLING_DAYS = [6, 16, 26];
+const DEFAULT_AMOUNT_PRESETS = [
+  { amount: 100, sortOrder: 0 },
+  { amount: 500, sortOrder: 1 },
+  { amount: 1000, sortOrder: 2 },
+];
+
+function defaultProjectDisclaimer(orgName: string): string {
+  return `以上內容由「${orgName}」提供。若本專案跨年持續，定期捐款授權將延續至您主動終止為止。勸募立案核准字號如有變更，以主管機關最新核定與本頁公告為準。`;
+}
+
+async function createDonationProject(data: {
+  titleZh: string;
+  summaryZh: string;
+  logoKey: string;
+  organizationId: number | null;
+  organizationNameZh?: string | null;
+  heroImageKey: string | null;
+  fundraisingLicenseZh?: string | null;
+  projectDetailZh?: string | null;
+  projectDisclaimerZh?: string | null;
+  themes: ThemeLink[];
+  heroGallery?: Array<{ imageKey: string; sortOrder: number; isPrimary: boolean }>;
+  paymentKinds?: ProjectDonationPaymentKind[];
+  billingDays?: number[];
+  amountPresets?: Array<{ amount: number; sortOrder: number }>;
+}) {
+  const paymentKinds = data.paymentKinds ?? DEFAULT_PROJECT_PAYMENT_KINDS;
+  const billingDays = data.billingDays ?? DEFAULT_BILLING_DAYS;
+  const amountPresets = data.amountPresets ?? DEFAULT_AMOUNT_PRESETS;
+
+  const heroGallery =
+    data.heroGallery ??
+    (data.heroImageKey != null && data.heroImageKey.length > 0
+      ? [{ imageKey: data.heroImageKey, sortOrder: 0, isPrimary: true }]
+      : []);
+
+  await prisma.donationItem.create({
+    data: {
+      category: 'projects',
+      titleZh: data.titleZh,
+      summaryZh: data.summaryZh,
+      logoKey: data.logoKey,
+      organizationId: data.organizationId ?? undefined,
+      organizationNameZh: data.organizationNameZh ?? undefined,
+      heroImageKey: data.heroImageKey ?? undefined,
+      fundraisingLicenseZh: data.fundraisingLicenseZh ?? undefined,
+      projectDetailZh: data.projectDetailZh ?? undefined,
+      projectDisclaimerZh: data.projectDisclaimerZh ?? undefined,
+      itemThemes: {
+        create: data.themes.map((t) => ({
+          theme: t.theme,
+          sortOrder: t.sortOrder,
+        })),
+      },
+      projectHeroImages: { create: heroGallery },
+      projectPaymentOptions: {
+        create: paymentKinds.map((kind) => ({ kind })),
+      },
+      billingDays: {
+        create: billingDays.map((day, i) => ({
+          dayOfMonth: day,
+          sortOrder: i,
+        })),
+      },
+      amountPresets: {
+        create: amountPresets.map((p, i) => ({
+          amount: p.amount,
+          sortOrder: p.sortOrder ?? i,
+          currency: 'TWD',
+        })),
+      },
+    },
+  });
+}
+
 type ProductImageSeed = { imageKey: string; sortOrder: number; isPrimary: boolean };
 type ProductOptionSeed = {
   labelZh: string;
@@ -352,6 +433,9 @@ const showcaseProjects: Array<{
   summaryZh: string;
   orgKey: string;
   heroImageKey: string;
+  heroGallery?: Array<{ imageKey: string; sortOrder: number; isPrimary: boolean }>;
+  fundraisingLicenseZh: string;
+  projectDetailZh: string;
   themes: ThemeLink[];
 }> = [
   {
@@ -360,6 +444,15 @@ const showcaseProjects: Array<{
       '串連社區共享物資，減少食物浪費並支援經濟弱勢家庭取得營養餐食。',
     orgKey: 'kaohsiung_hede',
     heroImageKey: 'project-hero-community-fridge',
+    heroGallery: [
+      { imageKey: 'project-hero-community-fridge', sortOrder: 0, isPrimary: true },
+      { imageKey: 'project-hero-community-fridge-2', sortOrder: 1, isPrimary: false },
+    ],
+    fundraisingLicenseZh: '1141365173',
+    projectDetailZh:
+      '🍗 🍚 🥕 🥬 🍎 🍞\n\n「吃飽」是最基本的需求，卻仍有弱勢家庭與獨居長者為下一餐煩惱。根據調查，台灣每年每人約有 170 公斤的食物在生產、流通與消費端被浪費，同時卻有人吃不飽。\n\n' +
+      '本專案透過社區冰箱與共享物資站，媒合剩食與需要的人，並培力志工協助配送與衛教。您的捐款將用於據點維護、保冷設備、清潔消毒與志工培訓，讓惜食與互助在巷弄發生。\n\n' +
+      '我們也與學校、企業合作舉辦惜食講座，讓下一代從小理解食物得來不易。誠摯邀請您以定期或單次捐款支持，讓社區多一點溫度。',
     themes: [
       { theme: 'public_issues', sortOrder: 0 },
       { theme: 'community_development', sortOrder: 1 },
@@ -371,6 +464,11 @@ const showcaseProjects: Array<{
     summaryZh: '協助脊髓損傷者居家無障礙改造，募款安裝升降椅與輔具。',
     orgKey: 'spinal_fund',
     heroImageKey: 'project-hero-lift-chair',
+    fundraisingLicenseZh: '1130855120',
+    projectDetailZh:
+      '許多脊髓損傷朋友返家後，面臨門檻、浴室與臥房動線障礙，連「回到自己房間」都成奢望。本專案募款用於補助升降椅、無障礙坡道與抓桿等設施，並媒合職能治療建議與施工廠商。\n\n' +
+      '每筆捐款都會進入專款專戶，由社工與復健團隊評估個案後核銷。我們也提供家屬諮詢與同儕支持活動，陪伴家庭度過改造期的不安。\n\n' +
+      '邀請您支持無障礙不是奢侈品，而是每個人應有的尊嚴。',
     themes: [
       { theme: 'disability_services', sortOrder: 0 },
       { theme: 'poverty_relief', sortOrder: 1 },
@@ -458,28 +556,34 @@ async function main() {
   }
 
   for (const p of showcaseProjects) {
-    await createItem({
-      category: 'projects',
+    const orgName = organizationSeeds.find((o) => o.key === p.orgKey)?.nameZh ?? '主辦單位';
+    await createDonationProject({
       titleZh: p.titleZh,
       summaryZh: p.summaryZh,
       logoKey: DEMO_LOGO_KEY,
       organizationId: orgIds[p.orgKey]!,
       organizationNameZh: organizationSeeds.find((o) => o.key === p.orgKey)?.nameZh,
       heroImageKey: p.heroImageKey,
+      heroGallery: p.heroGallery,
+      fundraisingLicenseZh: p.fundraisingLicenseZh,
+      projectDetailZh: p.projectDetailZh,
+      projectDisclaimerZh: defaultProjectDisclaimer(orgName),
       themes: p.themes,
     });
   }
 
   for (const r of extraRows()) {
     if (r.category === 'projects' && r.extraThemes != null) {
-      await createItem({
-        category: r.category,
+      await createDonationProject({
         titleZh: r.titleZh,
         summaryZh: r.summaryZh,
         logoKey: r.logoKey,
         organizationId: orgIds.extra_project_host!,
         organizationNameZh: r.organizationNameZh,
-        heroImageKey: r.heroImageKey,
+        heroImageKey: r.heroImageKey ?? null,
+        fundraisingLicenseZh: `示範勸募字第${String(r.extraRowIndex).padStart(4, '0')}號`,
+        projectDetailZh: `${r.summaryZh}\n\n此為自動產生之專案內文，供驗證捐款專案詳情頁、輪播與捐款設定表單。實際上線時請替換為法遵核准之完整說明與風險揭露。\n\n若您願意支持示範主辦單位，可選擇定期或單次捐款；扣款日與金額選項由本專案後台設定。`,
+        projectDisclaimerZh: defaultProjectDisclaimer('示範主辦單位'),
         themes: r.extraThemes,
       });
     } else if (r.category === 'products') {

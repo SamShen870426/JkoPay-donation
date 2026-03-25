@@ -1,6 +1,9 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import type { CharityTheme, DonationCategory } from '@jkopay/contracts';
-import { donationItemListInclude } from './donation.transformer.js';
+import {
+  donationItemListInclude,
+  donationItemProjectDetailInclude,
+} from './donation.transformer.js';
 
 export class DonationRepository {
   constructor(private readonly db: PrismaClient) {}
@@ -54,6 +57,13 @@ export class DonationRepository {
     return this.db.donationItem.findUnique({
       where: { id },
       include: donationItemListInclude,
+    });
+  }
+
+  async findByIdForProjectDetail(id: number) {
+    return this.db.donationItem.findUnique({
+      where: { id },
+      include: donationItemProjectDetailInclude,
     });
   }
 }
