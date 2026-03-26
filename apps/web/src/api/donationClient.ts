@@ -7,6 +7,8 @@ import {
   donationListQuerySchema,
   donationListResponseSchema,
   donationProjectDetailSchema,
+  internalDataToolsRequestSchema,
+  internalDataToolsResponseSchema,
   type CharityOrganizationProfileResponse,
   type CharityProductDetail,
   type CharityTheme,
@@ -14,6 +16,7 @@ import {
   type DonationListItem,
   type DonationListResponse,
   type DonationProjectDetail,
+  type InternalDataToolsResponse,
 } from '@jkopay/contracts';
 import { throwDonationErrorFromBody } from './donation-api-error.js';
 
@@ -189,6 +192,52 @@ export async function fetchCharityOrganizationProjectsPage(input: {
     throw new Error('Invalid JSON from donation API');
   }
   return donationListResponseSchema.parse(json);
+}
+
+export function buildInternalDataToolsUrl(apiBase: string = import.meta.env.VITE_API_BASE ?? ''): string {
+  return `${apiBase}/api/v1/internal/data-tools`;
+}
+
+export async function postInternalDataTools(input: {
+  secret: string;
+  mode: 'wipe' | 'wipe_and_bulk_seed';
+  organizationCount?: number;
+  signal?: AbortSignal;
+}): Promise<InternalDataToolsResponse> {
+  const body = internalDataToolsRequestSchema.parse({
+    secret: input.secret,
+    mode: input.mode,
+    ...(input.organizationCount != null ? { organizationCount: input.organizationCount } : {}),
+  });
+  const res = await fetch(buildInternalDataToolsUrl(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: input.signal,
+  });
+  const text = await res.text();
+  if (res.status === 404) {
+    throw new Error('此環境未啟用資料工具（BFF 未設定 DEV_DATA_TOOLS_SECRET）');
+  }
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try {
+      const j = JSON.parse(text) as { message?: string; error?: string };
+      if (typeof j.message === 'string' && j.message.length > 0) msg = j.message;
+      else if (typeof j.error === 'string' && j.error.length > 0) msg = j.error;
+      else msg = `${msg}: ${text.slice(0, 200)}`;
+    } catch {
+      msg = `${msg}: ${text.slice(0, 200)}`;
+    }
+    throw new Error(msg);
+  }
+  let json: unknown;
+  try {
+    json = JSON.parse(text) as unknown;
+  } catch {
+    throw new Error('Invalid JSON from internal data-tools API');
+  }
+  return internalDataToolsResponseSchema.parse(json);
 }
 
 export type {

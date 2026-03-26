@@ -4,6 +4,7 @@ import cors from '@fastify/cors';
 import type { AppDependencies } from './di/dependencies.js';
 import { registerGlobalErrorHandler } from './plugins/error-handler.js';
 import { registerCharityOrganizationRoutes } from './routes/charity-organization.routes.js';
+import { registerDevDataToolsRoutes } from './routes/dev-data-tools.routes.js';
 import { registerDonationRoutes } from './routes/donation.routes.js';
 
 export type CreateAppOptions = {
@@ -21,6 +22,7 @@ export async function createApp(
   await app.register(cors, { origin: true });
   await registerDonationRoutes(app, deps);
   await registerCharityOrganizationRoutes(app, deps);
+  await registerDevDataToolsRoutes(app, deps);
 
   return app;
 }

@@ -5,6 +5,7 @@ import {
   buildCharityProductDetailUrl,
   buildDonationItemsListUrl,
   buildDonationProjectDetailUrl,
+  buildInternalDataToolsUrl,
   fetchCharityOrganizationProfile,
   fetchCharityProductDetail,
   fetchDonationPage,
@@ -41,6 +42,15 @@ describe('buildDonationItemsListUrl', () => {
       // @ts-expect-error 刻意傳入非法 category 驗證 Zod
       buildDonationItemsListUrl({ category: 'oops', q: '' }, ''),
     ).toThrow();
+  });
+});
+
+describe('buildInternalDataToolsUrl', () => {
+  it('組出 internal data-tools POST 路徑', () => {
+    expect(buildInternalDataToolsUrl('http://bff.test')).toBe(
+      'http://bff.test/api/v1/internal/data-tools',
+    );
+    expect(buildInternalDataToolsUrl('')).toBe('/api/v1/internal/data-tools');
   });
 });
 

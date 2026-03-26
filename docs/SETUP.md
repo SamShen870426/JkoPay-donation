@@ -58,6 +58,7 @@
 | `PORT` | BFF 監聽埠，預設 `4000` |
 | `ASSET_CDN_BASE` | 選填；當 `logo_key` / `hero_image_key` / 商品圖 `image_key` **不是** `http(s)://` 且**不是**以 `/` 開頭時，BFF 會以此為前綴組出圖片 URL；未設時預設走 picsum placeholder（部分網路環境可能無法載入） |
 | `DONATION_FALLBACK_IMAGE_URL` | 選填；欄位為空或僅空白時使用的預設圖 URL，預設為 `/donation-demo-logo.png`（與 Web `public` 靜態檔對應） |
+| `DEV_DATA_TOOLS_SECRET` | 選填；若設定則啟用 **內部資料工具** API 與隱藏頁（見 [DEV_DATA_TOOLS.md](./DEV_DATA_TOOLS.md)），**勿用於正式環境** |
 
 ### Web（Vite）
 
