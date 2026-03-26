@@ -64,7 +64,7 @@ export function DevDataToolsScreen() {
           <input
             type="number"
             min={1}
-            max={500}
+            max={5000}
             value={organizationCount}
             onChange={(e) => setOrganizationCount(Number(e.target.value) || 1)}
             className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-neutral-400"

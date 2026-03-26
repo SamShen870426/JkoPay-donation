@@ -39,7 +39,7 @@ https://你的網域/internal/data-tools
 
 - **`mode`**
   - `wipe`：僅清空（`donation_items` 全刪 → `charity_organizations` 全刪）。
-  - `wipe_and_bulk_seed`：同上後再種資料；此時 **`organizationCount`** 有效（預設 30，上限 500）。  
+  - `wipe_and_bulk_seed`：同上後再種資料；此時 **`organizationCount`** 有效（預設 30，上限 **5000**；過大會拉長寫入時間與佔用磁碟，請視本機／容器資源調整）。  
     每個團體會建立 **8 筆** `donation_items`（1 groups + 2 projects + 5 products）+ **1** 筆 `charity_organizations`。  
     例：`organizationCount: 30` → 30 團體、**240 筆**列表列（+ 30 主檔）。
 
