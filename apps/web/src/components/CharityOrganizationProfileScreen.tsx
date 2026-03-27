@@ -16,6 +16,7 @@ import {
   THEME_PRIMARY,
 } from '../constants/theme.js';
 import { onDonationImageError } from '../lib/donation-image-fallback.js';
+import { navigateToDonationListWithThemeFilter } from '../lib/navigate-donation-list.js';
 import { Button } from '../ui/button.js';
 import { CharitySaleProductCard } from './CharitySaleProductCard.js';
 import { DonationLoadMoreSkeleton } from './DonationListSkeleton.js';
@@ -361,13 +362,18 @@ export function CharityOrganizationProfileScreen() {
               {themes.length > 0 ? (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {themes.map((t) => (
-                    <span
+                    <button
                       key={t}
-                      className="rounded-full px-3 py-1.5 text-[12px] font-medium text-neutral-700"
+                      type="button"
+                      className="rounded-full px-3 py-1.5 text-left text-[12px] font-medium text-neutral-700 outline-none transition-opacity active:opacity-80 focus-visible:ring-2 focus-visible:ring-[#C9191D]/40"
                       style={{ backgroundColor: FILTER_CHIP_BG }}
+                      onClick={() =>
+                        navigateToDonationListWithThemeFilter(navigate, 'groups', t as CharityTheme)
+                      }
+                      aria-label={`以「${CHARITY_THEME_LABELS[t]}」篩選公益團體列表`}
                     >
                       {CHARITY_THEME_LABELS[t]}
-                    </span>
+                    </button>
                   ))}
                 </div>
               ) : null}

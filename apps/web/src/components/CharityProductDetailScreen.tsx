@@ -8,6 +8,7 @@ import { LAYOUT_NAV_BAR_PX, THEME_PAGE_BG, THEME_PRIMARY } from '../constants/th
 import { onDonationImageError } from '../lib/donation-image-fallback.js';
 import { formatCharityPriceLine } from '../lib/format-charity-price.js';
 import { patchDonationListUi } from '../lib/donation-list-ui-storage.js';
+import { navigateToDonationListWithThemeFilter } from '../lib/navigate-donation-list.js';
 import { stripLeadingDashSeparator } from '../lib/product-description-display.js';
 import { Button } from '../ui/button.js';
 import { MobileStatusBar } from './MobileStatusBar.js';
@@ -189,12 +190,17 @@ export function CharityProductDetailScreen() {
                 {detail.themes.length > 0 ? (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {detail.themes.map((t) => (
-                      <span
+                      <button
                         key={t}
-                        className="rounded-full bg-[#EDEDF1] px-2.5 py-1 text-[12px] text-neutral-700"
+                        type="button"
+                        className="rounded-full bg-[#EDEDF1] px-2.5 py-1 text-left text-[12px] text-neutral-700 outline-none transition-opacity active:opacity-80 focus-visible:ring-2 focus-visible:ring-[#C9191D]/40"
+                        onClick={() =>
+                          navigateToDonationListWithThemeFilter(navigate, 'products', t as CharityTheme)
+                        }
+                        aria-label={`以「${CHARITY_THEME_LABELS[t as CharityTheme]}」篩選義賣商品列表`}
                       >
                         {CHARITY_THEME_LABELS[t as CharityTheme]}
-                      </span>
+                      </button>
                     ))}
                   </div>
                 ) : null}

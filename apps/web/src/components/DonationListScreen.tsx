@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { CharityTheme, DonationCategory } from '@jkopay/contracts';
 import {
   readDonationListUiState,
@@ -14,6 +15,7 @@ import {
   THEME_PAGE_BG,
   THEME_PRIMARY,
 } from '../constants/theme.js';
+import { tryNavigateBack } from '../lib/navigate-back-if-possible.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { useDonationList } from '../hooks/useDonationList.js';
 import { Button } from '../ui/button.js';
@@ -34,6 +36,7 @@ import { TabBar } from './TabBar.js';
 const SEARCH_DEBOUNCE_MS = 350;
 
 export function DonationListScreen() {
+  const navigate = useNavigate();
   const initialUi = readDonationListUiState();
   const [category, setCategory] = useState<DonationCategory>(initialUi.category);
   const [searchInput, setSearchInput] = useState(initialUi.searchInput);
@@ -118,7 +121,9 @@ export function DonationListScreen() {
             variant="icon-ghost"
             size="iconLg"
             className="absolute left-2"
-            aria-label="返回"
+            aria-label="返回上一頁"
+            type="button"
+            onClick={() => tryNavigateBack(navigate)}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path

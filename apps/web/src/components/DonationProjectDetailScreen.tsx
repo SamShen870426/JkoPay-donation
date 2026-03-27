@@ -12,6 +12,7 @@ import {
 } from '../constants/theme.js';
 import { onDonationImageError } from '../lib/donation-image-fallback.js';
 import { patchDonationListUi } from '../lib/donation-list-ui-storage.js';
+import { navigateToDonationListWithThemeFilter } from '../lib/navigate-donation-list.js';
 import { Button } from '../ui/button.js';
 import { DonationSettingsSheet } from './DonationSettingsSheet.js';
 import { MobileStatusBar } from './MobileStatusBar.js';
@@ -219,12 +220,17 @@ export function DonationProjectDetailScreen() {
                 {detail.themes.length > 0 ? (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {detail.themes.map((t) => (
-                      <span
+                      <button
                         key={t}
-                        className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[12px] text-neutral-700"
+                        type="button"
+                        className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-left text-[12px] text-neutral-700 outline-none transition-opacity active:opacity-80 focus-visible:ring-2 focus-visible:ring-[#C9191D]/40"
+                        onClick={() =>
+                          navigateToDonationListWithThemeFilter(navigate, 'projects', t as CharityTheme)
+                        }
+                        aria-label={`以「${CHARITY_THEME_LABELS[t as CharityTheme]}」篩選捐款專案列表`}
                       >
                         {CHARITY_THEME_LABELS[t as CharityTheme]}
-                      </span>
+                      </button>
                     ))}
                   </div>
                 ) : null}
