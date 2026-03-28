@@ -13,6 +13,7 @@
   ],
   "scripts": {
     "build": "npm run build -w @jkopay/contracts && npm run build -w @jkopay/bff && npm run build -w @jkopay/web",
+    "start": "npm run start -w @jkopay/bff",
     "dev": "concurrently -n contracts,bff,web -c blue,magenta,green \"npm run dev -w @jkopay/contracts\" \"npm run dev -w @jkopay/bff\" \"npm run dev -w @jkopay/web\"",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
@@ -21,8 +22,9 @@
     "preprisma:setup": "node scripts/ensure-bff-env.mjs",
     "prisma:generate": "npm run db:generate -w @jkopay/bff",
     "prisma:migrate": "npm run db:migrate:deploy -w @jkopay/bff",
-    "prisma:seed": "npm run db:seed -w @jkopay/bff",
+    "prisma:seed": "npm run build -w @jkopay/contracts && npm run db:seed -w @jkopay/bff",
     "prisma:setup": "npm run prisma:generate && npm run prisma:migrate && npm run prisma:seed",
+    "railway:build:bff": "npm run build -w @jkopay/contracts && npm run db:generate -w @jkopay/bff && npm run build -w @jkopay/bff",
     "check-env": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/check-env.ps1",
     "test": "npm run test -w @jkopay/bff && npm run test -w @jkopay/web",
     "test:integration": "npm run test:integration -w @jkopay/bff && npm run test:integration -w @jkopay/web"
