@@ -8,8 +8,7 @@
 
 | 項目 | 連結 |
 |------|------|
-| **線上 Demo** | _（請填：Vercel 前端網址；API 請一併部署於可公開存取之 Node 服務）_ |
-| **Repository** | _（請填：GitHub 連結）_ |
+| **線上 Demo** | https://jko-pay-donation-web.vercel.app/ |
 
 > 部署說明可參考團隊內部文件 `docs/SETUP.md`；前端與 BFF／資料庫分拆部署時，請在 Vercel 設定 `VITE_API_BASE` 指向 BFF 的公開 origin。
 
