@@ -16,14 +16,45 @@ type RunPhase = 'idle' | 'running' | 'success' | 'error';
 export function DevDataToolsScreen() {
   const [secret, setSecret] = useState('');
   const [organizationCount, setOrganizationCount] = useState(30);
-  const [loading, setLoading] = useState(false);
+  const [activeOp, setActiveOp] = useState<null | 'wipe' | 'seed'>(null);
   const [phase, setPhase] = useState<RunPhase>('idle');
   const [progressPercent, setProgressPercent] = useState(0);
   const [statusLine, setStatusLine] = useState<string | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
+  const [infoText, setInfoText] = useState<string | null>(null);
+
+  const busy = activeOp !== null;
+
+  async function runWipeOnly() {
+    setErrorText(null);
+    setInfoText(null);
+    setStatusLine(null);
+    setPhase('idle');
+    setProgressPercent(0);
+
+    const s = secret.trim();
+    if (s.length === 0) {
+      setErrorText('請輸入密鑰（與 BFF 環境變數 DEV_DATA_TOOLS_SECRET 相同）。');
+      setPhase('error');
+      return;
+    }
+
+    setActiveOp('wipe');
+    try {
+      await postInternalDataTools({ secret: s, mode: 'wipe' });
+      setInfoText('已清空公益團體與捐款項目（MySQL）。');
+      setPhase('idle');
+    } catch (e) {
+      setPhase('error');
+      setErrorText(e instanceof Error ? e.message : String(e));
+    } finally {
+      setActiveOp(null);
+    }
+  }
 
   async function runBatchedSeed() {
     setErrorText(null);
+    setInfoText(null);
     setStatusLine(null);
     setPhase('running');
     setProgressPercent(0);
@@ -36,7 +67,7 @@ export function DevDataToolsScreen() {
     }
 
     const total = Math.min(5000, Math.max(1, Math.floor(organizationCount)));
-    setLoading(true);
+    setActiveOp('seed');
 
     try {
       let batchIndex = 0;
@@ -77,7 +108,7 @@ export function DevDataToolsScreen() {
       setErrorText(e instanceof Error ? e.message : String(e));
       setStatusLine(null);
     } finally {
-      setLoading(false);
+      setActiveOp(null);
     }
   }
 
@@ -88,8 +119,8 @@ export function DevDataToolsScreen() {
       <div className="mx-auto max-w-md space-y-4">
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] leading-relaxed text-amber-950">
           <strong>內部資料工具</strong>
-          ：按下後會先<strong>清空</strong>公益資料，再依團體總數<strong>分批重種</strong>（每批{' '}
-          <strong>{BATCH_SIZE}</strong> 團、多個請求，附進度條）。每團為{' '}
+          ：「清空並分批重種」會先<strong>清空</strong>公益資料，再依團體總數<strong>分批重種</strong>（每批{' '}
+          <strong>{BATCH_SIZE}</strong> 團、多個請求，附進度條）。「僅清空」只刪資料、不寫入示範團。每團為{' '}
           <strong>1 團體列 + 2 專案 + 5 義賣</strong>。
         </div>
 
@@ -117,14 +148,24 @@ export function DevDataToolsScreen() {
           />
         </label>
 
-        <Button
-          type="button"
-          disabled={loading}
-          className="w-full rounded-xl border-2 border-amber-800 bg-amber-100 py-3 text-[15px] font-semibold text-amber-950 active:bg-amber-200"
-          onClick={() => void runBatchedSeed()}
-        >
-          {loading ? '重種進行中…' : '清空並分批重種'}
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button
+            type="button"
+            disabled={busy}
+            className="w-full rounded-xl border-2 border-red-800 bg-red-100 py-3 text-[15px] font-semibold text-red-950 active:bg-red-200"
+            onClick={() => void runWipeOnly()}
+          >
+            {activeOp === 'wipe' ? '清空中…' : '僅清空資料庫'}
+          </Button>
+          <Button
+            type="button"
+            disabled={busy}
+            className="w-full rounded-xl border-2 border-amber-800 bg-amber-100 py-3 text-[15px] font-semibold text-amber-950 active:bg-amber-200"
+            onClick={() => void runBatchedSeed()}
+          >
+            {activeOp === 'seed' ? '重種進行中…' : '清空並分批重種'}
+          </Button>
+        </div>
 
         {showProgress ? (
           <div className="space-y-2 rounded-xl bg-white p-3 ring-1 ring-black/10">
@@ -154,6 +195,10 @@ export function DevDataToolsScreen() {
               <p className="text-[13px] font-semibold text-green-700">全部完成</p>
             ) : null}
           </div>
+        ) : null}
+
+        {infoText != null ? (
+          <p className="rounded-lg bg-emerald-50 px-3 py-2 text-[13px] text-emerald-900">{infoText}</p>
         ) : null}
 
         {errorText != null ? (
