@@ -81,14 +81,23 @@ describe.skipIf(!run)('Donation API — DB integration', () => {
     expect(total).toBe(expected);
   });
 
-  it('GET 搜尋：關鍵字命中 seed 標題', async () => {
+  it('GET 搜尋：關鍵字命中現有團體標題', async () => {
+    const row = await prisma.donationItem.findFirst({
+      where: { category: 'groups' },
+      orderBy: { id: 'asc' },
+      select: { titleZh: true },
+    });
+    expect(row).toBeTruthy();
+    const title = row!.titleZh;
+    const q = title.length <= 2 ? title : title.slice(0, 2);
+
     const res = await app.inject({
       method: 'GET',
-      url: `/api/v1/donation-items?category=groups&q=${encodeURIComponent('兒童福利')}`,
+      url: `/api/v1/donation-items?category=groups&q=${encodeURIComponent(q)}`,
     });
     expect(res.statusCode).toBe(200);
     const body = res.json() as { items: Array<{ title: string }> };
-    expect(body.items.some((i) => i.title.includes('兒童福利'))).toBe(true);
+    expect(body.items.some((i) => i.title.includes(q))).toBe(true);
   });
 
   it('keyset 分頁：第二頁 cursor 不接續重複 id', async () => {

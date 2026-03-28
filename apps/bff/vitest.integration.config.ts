@@ -6,7 +6,8 @@ export default defineConfig({
     include: ['src/**/*.integration.test.ts'],
     setupFiles: ['src/test/integration-setup.ts'],
     fileParallelism: false,
-    hookTimeout: 30_000,
-    testTimeout: 30_000,
+    /** 大量 groups（工具 bulk 種子）時，逐頁加總會超過 30s */
+    hookTimeout: 180_000,
+    testTimeout: 180_000,
   },
 });
