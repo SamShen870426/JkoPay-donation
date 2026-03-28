@@ -67,6 +67,7 @@ export function useDonationList(
     const epoch = ++requestEpoch.current;
     const ac = new AbortController();
     setIsLoading(true);
+    setIsFetchingNextPage(false);
     setError(null);
     setErrorCode(null);
     setItems([]);
@@ -133,9 +134,9 @@ export function useDonationList(
         setErr(e);
       }
     } finally {
-      if (identity === listIdentityEpoch.current) {
-        setIsFetchingNextPage(false);
-      }
+      // 一律結束「載入下一頁」狀態；若與 identity 綁定，在關鍵字／分類快速切換時會漏跑 finally，
+      // 導致 isFetchingNextPage 永遠 true → 無限捲動與取消搜尋後全部卡住。
+      setIsFetchingNextPage(false);
     }
   }, [category, debouncedQ, theme, hasMore, isLoading, isFetchingNextPage]);
 
