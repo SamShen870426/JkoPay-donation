@@ -5,7 +5,11 @@ import {
   internalDataToolsRequestSchema,
   internalDataToolsResponseSchema,
 } from '@jkopay/contracts';
-import { bulkSeedCharityDemo, wipeAllCharityData } from '../../dev-seed/bulk-charity-seed.js';
+import {
+  bulkSeedCharityDemo,
+  seedOrganizationRange,
+  wipeAllCharityData,
+} from '../../dev-seed/bulk-charity-seed.js';
 
 export class DevDataToolsService {
   constructor(private readonly prisma: PrismaClient) {}
@@ -34,37 +38,104 @@ export class DevDataToolsService {
       return;
     }
 
-    const { secret, mode, organizationCount } = parsed.data;
-    if (!DevDataToolsService.secretMatches(configured, secret)) {
+    const body = parsed.data;
+    if (!DevDataToolsService.secretMatches(configured, body.secret)) {
       reply.code(403).send({ error: 'FORBIDDEN', message: '密鑰錯誤' });
       return;
     }
 
-    await wipeAllCharityData(this.prisma);
-
-    let bulkSeeded = false;
-    let organizationsCreated: number | undefined;
-    let donationItemsCreated: number | undefined;
-    let orgCountOut: number | undefined;
-
-    if (mode === 'wipe_and_bulk_seed') {
-      const r = await bulkSeedCharityDemo(this.prisma, organizationCount);
-      bulkSeeded = true;
-      orgCountOut = organizationCount;
-      organizationsCreated = r.organizationsCreated;
-      donationItemsCreated = r.donationItemsCreated;
+    if (body.mode === 'wipe') {
+      await wipeAllCharityData(this.prisma);
+      const payload = {
+        ok: true as const,
+        mode: 'wipe' as const,
+        wiped: true,
+        bulkSeeded: false,
+      };
+      const out = internalDataToolsResponseSchema.safeParse(payload);
+      if (!out.success) {
+        reply.code(500).send({ error: 'INTERNAL', message: 'Response contract mismatch' });
+        return;
+      }
+      reply.code(200).send(out.data);
+      return;
     }
 
+    if (body.mode === 'wipe_and_bulk_seed') {
+      await wipeAllCharityData(this.prisma);
+      const r = await bulkSeedCharityDemo(this.prisma, body.organizationCount);
+      const payload = {
+        ok: true as const,
+        mode: 'wipe_and_bulk_seed' as const,
+        wiped: true,
+        bulkSeeded: true,
+        organizationCount: body.organizationCount,
+        organizationsCreated: r.organizationsCreated,
+        donationItemsCreated: r.donationItemsCreated,
+      };
+      const out = internalDataToolsResponseSchema.safeParse(payload);
+      if (!out.success) {
+        reply.code(500).send({ error: 'INTERNAL', message: 'Response contract mismatch' });
+        return;
+      }
+      reply.code(200).send(out.data);
+      return;
+    }
+
+    // bulk_seed_batch
+    const totalOrganizationCount = body.totalOrganizationCount!;
+    const batchIndex = body.batchIndex!;
+    const batchSize = body.batchSize;
+    const rangeStart = batchIndex * batchSize + 1;
+    const rangeEnd = Math.min((batchIndex + 1) * batchSize, totalOrganizationCount);
+
+    let wiped = false;
+    if (body.wipeFirst && batchIndex === 0) {
+      await wipeAllCharityData(this.prisma);
+      wiped = true;
+    }
+
+    if (rangeStart > rangeEnd || rangeStart > totalOrganizationCount) {
+      const payload = {
+        ok: true as const,
+        mode: 'bulk_seed_batch' as const,
+        wiped,
+        bulkSeeded: false,
+        totalOrganizationCount,
+        batchIndex,
+        batchSize,
+        rangeStart,
+        rangeEnd,
+        batchDone: true,
+        organizationsCreated: 0,
+        donationItemsCreated: 0,
+      };
+      const out = internalDataToolsResponseSchema.safeParse(payload);
+      if (!out.success) {
+        reply.code(500).send({ error: 'INTERNAL', message: 'Response contract mismatch' });
+        return;
+      }
+      reply.code(200).send(out.data);
+      return;
+    }
+
+    const r = await seedOrganizationRange(this.prisma, rangeStart, rangeEnd);
+    const batchDone = rangeEnd >= totalOrganizationCount;
     const payload = {
       ok: true as const,
-      mode,
-      wiped: true,
-      bulkSeeded,
-      ...(orgCountOut != null ? { organizationCount: orgCountOut } : {}),
-      ...(organizationsCreated != null ? { organizationsCreated } : {}),
-      ...(donationItemsCreated != null ? { donationItemsCreated } : {}),
+      mode: 'bulk_seed_batch' as const,
+      wiped,
+      bulkSeeded: true,
+      totalOrganizationCount,
+      batchIndex,
+      batchSize,
+      rangeStart,
+      rangeEnd,
+      batchDone,
+      ...(batchDone ? {} : { nextBatchIndex: batchIndex + 1 }),
+      organizationsCreated: r.organizationsCreated,
+      donationItemsCreated: r.donationItemsCreated,
     };
-
     const out = internalDataToolsResponseSchema.safeParse(payload);
     if (!out.success) {
       reply.code(500).send({ error: 'INTERNAL', message: 'Response contract mismatch' });

@@ -39,9 +39,15 @@ https://你的網域/internal/data-tools
 
 - **`mode`**
   - `wipe`：僅清空（`donation_items` 全刪 → `charity_organizations` 全刪）。
-  - `wipe_and_bulk_seed`：同上後再種資料；此時 **`organizationCount`** 有效（預設 30，上限 **5000**；過大會拉長寫入時間與佔用磁碟，請視本機／容器資源調整）。  
+  - `wipe_and_bulk_seed`：**單次 HTTP** 清空後再種；**`organizationCount`**（預設 30，上限 **5000**）。量大時瀏覽器／Proxy 易**逾時**，建議改用分批。  
     每個團體會建立 **8 筆** `donation_items`（1 groups + 2 projects + 5 products）+ **1** 筆 `charity_organizations`。  
     例：`organizationCount: 30` → 30 團體、**240 筆**列表列（+ 30 主檔）。
+  - `bulk_seed_batch`：**分批**種子，每批一個請求，適合雲端 Demo（避免長連線斷掉）。欄位：
+    - **`totalOrganizationCount`**：目標團體總數（1–5000）。
+    - **`batchIndex`**：第幾批，**0 起算**。
+    - **`batchSize`**：每批團體數（1–200，預設 50）。
+    - **`wipeFirst`**：僅當 **`batchIndex === 0`** 可為 `true`；為真時本批前先執行與 `wipe` 相同之清空。  
+    回應含 **`rangeStart`／`rangeEnd`／`batchDone`／`nextBatchIndex`**（未完成時）。種子實作上每團體為**單一 DB transaction**，並以少量並行加快寫入。
 
 密鑰比對使用 SHA-256 後 `timingSafeEqual`，不直接比對明文長度。
 

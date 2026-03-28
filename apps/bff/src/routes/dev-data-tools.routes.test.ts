@@ -68,4 +68,42 @@ describe('POST /api/v1/internal/data-tools', () => {
     expect(deleteMany).toHaveBeenCalledTimes(2);
     await app.close();
   });
+
+  it('bulk_seed_batch 缺少 totalOrganizationCount 時 400', async () => {
+    process.env.DEV_DATA_TOOLS_SECRET = 'unit-test-secret';
+    const prisma = {
+      donationItem: { deleteMany: vi.fn() },
+      charityOrganization: { deleteMany: vi.fn() },
+    } as unknown as PrismaClient;
+    const app = await createApp(buildDependencies({ prisma }), { logger: false });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/internal/data-tools',
+      payload: { secret: 'unit-test-secret', mode: 'bulk_seed_batch', batchIndex: 0 },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it('bulk_seed_batch 在 batchIndex 非 0 時 wipeFirst 為 true 則 400', async () => {
+    process.env.DEV_DATA_TOOLS_SECRET = 'unit-test-secret';
+    const prisma = {
+      donationItem: { deleteMany: vi.fn() },
+      charityOrganization: { deleteMany: vi.fn() },
+    } as unknown as PrismaClient;
+    const app = await createApp(buildDependencies({ prisma }), { logger: false });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/internal/data-tools',
+      payload: {
+        secret: 'unit-test-secret',
+        mode: 'bulk_seed_batch',
+        totalOrganizationCount: 100,
+        batchIndex: 1,
+        wipeFirst: true,
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
 });

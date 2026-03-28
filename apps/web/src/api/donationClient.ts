@@ -18,6 +18,7 @@ import {
   type DonationProjectDetail,
   type InternalDataToolsResponse,
 } from '@jkopay/contracts';
+import type { z } from 'zod';
 import { throwDonationErrorFromBody } from './donation-api-error.js';
 
 export type DonationItemsListUrlParams = {
@@ -198,17 +199,13 @@ export function buildInternalDataToolsUrl(apiBase: string = import.meta.env.VITE
   return `${apiBase}/api/v1/internal/data-tools`;
 }
 
-export async function postInternalDataTools(input: {
-  secret: string;
-  mode: 'wipe' | 'wipe_and_bulk_seed';
-  organizationCount?: number;
-  signal?: AbortSignal;
-}): Promise<InternalDataToolsResponse> {
-  const body = internalDataToolsRequestSchema.parse({
-    secret: input.secret,
-    mode: input.mode,
-    ...(input.organizationCount != null ? { organizationCount: input.organizationCount } : {}),
-  });
+type InternalDataToolsRequestInput = z.input<typeof internalDataToolsRequestSchema>;
+
+export async function postInternalDataTools(
+  input: InternalDataToolsRequestInput & { signal?: AbortSignal },
+): Promise<InternalDataToolsResponse> {
+  const { signal, ...rest } = input;
+  const body = internalDataToolsRequestSchema.parse(rest);
   const res = await fetch(buildInternalDataToolsUrl(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
